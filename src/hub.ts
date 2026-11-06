@@ -14,6 +14,8 @@ export type DeskCard = {
   escalated: boolean;
 };
 
+export type OwedRow = DeskCard & { state: string; from: string };
+
 export type GapRow = { label: string; minutes: number };
 
 export type Desk = {
@@ -194,6 +196,17 @@ export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; 
         })),
         gaps,
       };
+    },
+    list(): OwedRow[] {
+      return owed(items).map((item) => ({
+        id: item.id,
+        kind: item.kind,
+        title: item.title,
+        state: item.status,
+        due: dueLabel(item.due, input.now),
+        from: item.from,
+        escalated: item.escalated,
+      }));
     },
     record(kind: "Reply" | "Task", id: string): RecordView | null {
       const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);

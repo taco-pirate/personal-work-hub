@@ -206,6 +206,53 @@ describe("sample Desk", () => {
     expect(declined.counts.usableMinutes).toBe(540);
   });
 
+  it("lists owed items with kind, title, state, Due, sender, and Escalated, and leaves finished items off", () => {
+    const rows = openHub({ demo: demo(), chosen: null, now: NOW }).list();
+
+    expect(rows.map((row) => row.title)).toEqual([
+      "Reply with notes on the Q4 deck",
+      "Confirm Thursday's 1:1 still works",
+      "Get a badge reader for the lab",
+      "Share the Q3 readout",
+      "Complete security training",
+      "Attach the Q3 charts",
+      "Send facilities the badge form",
+    ]);
+    expect(rows[0]).toEqual({
+      id: "deck",
+      kind: "Reply",
+      title: "Reply with notes on the Q4 deck",
+      state: "Drafted",
+      due: "Thu 5:00pm",
+      from: "Priya Shah",
+      escalated: true,
+    });
+    expect(rows.map((row) => row.state)).toEqual([
+      "Drafted",
+      "Ready",
+      "Blocked",
+      "In Progress",
+      "In Progress",
+      "Drafted",
+      "Drafted",
+    ]);
+    expect(rows.map((row) => row.from)).toEqual([
+      "Priya Shah",
+      "Sam Ortiz",
+      "Facilities",
+      "Jordan Lee",
+      "Learning portal",
+      "Jordan Lee",
+      "Facilities",
+    ]);
+    expect(rows.map((row) => row.title)).not.toEqual(expect.arrayContaining([
+      "Sent the on-call roster",
+      "Last week's status note",
+      "Print the lobby poster",
+      "Renew the vendor certificate",
+    ]));
+  });
+
   it("contains no real mail in the demo files", () => {
     const root = "DEMO-PersonalWorkHub";
     const texts = ["replies", "tasks", "meetings"].flatMap((directory) =>
