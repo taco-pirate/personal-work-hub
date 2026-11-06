@@ -2,11 +2,15 @@ import { useLayoutEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MetricCard } from "@/components/arc/metric-card/metric-card";
 import type { Desk, OwedRow, Pipeline } from "./hub.ts";
-import { openHub, SAMPLE_CLOCK, type RecordView } from "./hub.ts";
-import { demoFolder } from "./demo.ts";
+import type { RecordView } from "./hub.ts";
 import { toggleTheme } from "./theme.ts";
+import { currentHub, subscribe } from "./workspace.ts";
 
-const hub = openHub({ demo: demoFolder(), chosen: null, now: SAMPLE_CLOCK });
+function useHub() {
+  const [, setRevision] = useState(0);
+  useLayoutEffect(() => subscribe(() => setRevision((value) => value + 1)), []);
+  return currentHub();
+}
 
 function recordPath(kind: "Reply" | "Task", id: string) {
   return `/${kind === "Reply" ? "replies" : "tasks"}/${id}`;
@@ -33,6 +37,7 @@ export function Appearance() {
 }
 
 export function DeskPage() {
+  const hub = useHub();
   const desk = hub.desk();
   const usable = usableParts(desk.counts.usableMinutes);
   const counts = [
@@ -43,7 +48,7 @@ export function DeskPage() {
     ["Usable", usable.value, usable.suffix],
   ] as const;
   return <div className="page">
-    <header><h1>{desk.heading}</h1><p className="quiet">Sample week</p></header>
+    <header><h1>{desk.heading}</h1><p className="quiet">{hub.source === "demo" ? "Sample week" : "PersonalWorkHub"}</p></header>
     <div className="metrics">
       {counts.map(([label, value, suffix]) => <MetricCard key={label} label={label} value={value} suffix={suffix || undefined} context="This workweek" />)}
     </div>
@@ -81,7 +86,7 @@ export function RecordPage({ kind }: { kind: "Reply" | "Task" }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [revision, setRevision] = useState(0);
-  const record = hub.record(kind, id ?? "");
+  const record = useHub().record(kind, id ?? "");
   void revision;
   useLayoutEffect(() => { rememberBack("/"); }, [id]);
   if (!record) return <p>Record not in this sample.</p>;
@@ -93,12 +98,12 @@ function RecordBody({ record, onBack, onChange }: { record: RecordView; onBack: 
   const [fact, setFact] = useState("");
   const [returns, setReturns] = useState("");
   const move = (state: Pipeline) => {
-    const result = hub.move(record.kind, record.id, state);
+    const result = currentHub().move(record.kind, record.id, state);
     setNote(result.ok ? "" : "Replace the placeholder before this can become Ready or Done.");
     onChange();
   };
   const defer = () => {
-    const result = hub.defer(record.kind, record.id, returns);
+    const result = currentHub().defer(record.kind, record.id, returns);
     setNote(result.ok ? "" : "Choose the date this returns.");
     onChange();
   };
@@ -112,13 +117,13 @@ function RecordBody({ record, onBack, onChange }: { record: RecordView; onBack: 
       {record.moves.length > 0 ? <>
         <label>Returns <input type="date" value={returns} onChange={(event) => setReturns(event.target.value)} /></label>
         <button type="button" onClick={defer}>Defer</button>
-        <button type="button" onClick={() => { hub.drop(record.kind, record.id); setNote(""); onChange(); }}>Drop</button>
+        <button type="button" onClick={() => { currentHub().drop(record.kind, record.id); setNote(""); onChange(); }}>Drop</button>
       </> : null}
-      {record.escalated ? <button type="button" onClick={() => { hub.dismiss(record.kind, record.id); setNote(""); onChange(); }}>Dismiss</button> : null}
+      {record.escalated ? <button type="button" onClick={() => { currentHub().dismiss(record.kind, record.id); setNote(""); onChange(); }}>Dismiss</button> : null}
     </div>
     {record.placeholder ? <form className="actions" onSubmit={(event) => {
       event.preventDefault();
-      const result = hub.replace(record.kind, record.id, fact);
+      const result = currentHub().replace(record.kind, record.id, fact);
       setNote(result.ok ? "" : "Replace the placeholder with the fact you decided.");
       if (result.ok) setFact("");
       onChange();
@@ -146,7 +151,7 @@ function RecordBody({ record, onBack, onChange }: { record: RecordView; onBack: 
 }
 
 export function OwedPage() {
-  const rows = hub.list();
+  const rows = useHub().list();
   return <div className="page">
     <header><h1>Owed</h1></header>
     <div className="rows">
@@ -167,7 +172,7 @@ function OwedRowLink({ row }: { row: OwedRow }) {
 }
 
 export function CalendarPage() {
-  const calendar = hub.calendar();
+  const calendar = useHub().calendar();
   const counts = [
     ["Meetings", calendar.counts.ahead, ""],
     ["Hours", ...parts(calendar.counts.meetingMinutes)],
@@ -207,7 +212,7 @@ export function MeetingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [revision, setRevision] = useState(0);
-  const meeting = hub.meeting(id ?? "");
+  const meeting = useHub().meeting(id ?? "");
   void revision;
   useLayoutEffect(() => { rememberBack("/calendar"); }, [id]);
   if (!meeting) return <p>Meeting not in this week.</p>;
@@ -218,7 +223,7 @@ export function MeetingPage() {
     <p>{meeting.time}</p>
     <p>{meeting.outlook ? <a href={meeting.outlook}>{meeting.outlook}</a> : "No Outlook address"}</p>
     <div className="actions">
-      {meeting.categories.map((category) => <button key={category} type="button" aria-pressed={category === meeting.category} disabled={category === meeting.category} onClick={() => { hub.categorize(meeting.id, category); setRevision((value) => value + 1); }}>{category}</button>)}
+      {meeting.categories.map((category) => <button key={category} type="button" aria-pressed={category === meeting.category} disabled={category === meeting.category} onClick={() => { currentHub().categorize(meeting.id, category); setRevision((value) => value + 1); }}>{category}</button>)}
     </div>
   </article>;
 }

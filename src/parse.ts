@@ -35,6 +35,8 @@ export type StoredMeeting = {
 
 export type HubSnapshot = {
   ready: boolean;
+  name: string;
+  directories: string[];
   items: StoredItem[];
   meetings: StoredMeeting[];
 };
@@ -46,6 +48,8 @@ const REQUIRED = ["replies", "tasks", "meetings"];
 export function snapshotFromFiles(name: string, directories: string[], files: FolderFile[]): HubSnapshot {
   return {
     ready: name === "PersonalWorkHub" && REQUIRED.every((dir) => directories.includes(dir)),
+    name,
+    directories,
     items: files.flatMap((file) => itemFrom(file)),
     meetings: files.flatMap((file) => meetingFrom(file)),
   };
