@@ -42,11 +42,11 @@ Order:
 
 Replies and Tasks share one pipeline. The states, in order, are Drafted, In Progress, Blocked, Ready, and Done. Cowork files every new Reply and every new Task as Drafted. The user may move an item to any of those states, including from Drafted straight to Ready. A Reply that still has a placeholder cannot become Ready or Done. Approve moves a Reply to Ready. Mark sent and Mark done move an item to Done.
 
-Done items stay on the board through the workweek in which they were finished. After that workweek they are Archived. The file stays. They are not deleted.
+Done items stay on the board through the workweek in which they were finished. Once a later workweek has started, the app marks those items Archived the next time it reads the folder. There is no archive page. A card can leave Done until that happens. After that, it stays Archived. The file stays. They are not deleted.
 
 Defer asks for the date the item returns. Drop means the user will not do it. Drop is not Done. Neither Defer nor Drop is a state in the pipeline.
 
-Only the user moves an item between those states, defers it, drops it, or dismisses Escalated.
+Only the user moves an item between those states, defers it, drops it, or dismisses Escalated. A chase does not change the state.
 
 # Replies and tasks
 
@@ -60,7 +60,7 @@ A later message that chases the same open item adds a Comment and does not creat
 
 Cowork sets an action address only when the email contains one link that is clearly the deed. Zero links, or several plausible ones, leave it empty. Unsubscribe, image, and tracking links are ignored. The Outlook address of the Source is never the action address.
 
-Seeing the same email again updates the open item of that kind. It does not add a second one.
+Seeing the same email again updates the item of that kind. It does not add a second one, and it does not change the state.
 
 # Calendar
 

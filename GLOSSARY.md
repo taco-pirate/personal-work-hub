@@ -19,11 +19,11 @@ The link where a Task's deed happens. Cowork fills it only when the email contai
 _Avoid_: Portal link, URL
 
 **Comment**:
-A note added to an owed Reply or Task when a later message chases that same item. It keeps the Outlook on the web address of the chasing message. It does not create another Reply or Task, and it does not change a Reply the user has edited.
+A note added to an owed Reply or Task when a later message chases that same item. It keeps the Outlook on the web address of the chasing message. It does not create another Reply or Task, it does not change the item's state, and it does not change a Reply the user has edited.
 _Avoid_: Follow-up, update, nudge
 
 **Escalated**:
-An owed Reply or Task that a later chase squeezed, by moving the deadline earlier, saying it is overdue or blocking someone, or coming from a different person. A reminder from the same sender with the same deadline is a Comment only. The flag stays until the user marks the item Done or dismisses it.
+An owed Reply or Task that a later chase squeezed, by moving the deadline earlier, saying it is overdue or blocking someone, or coming from a different person. A reminder from the same sender with the same deadline is a Comment only. The flag stays until the user marks the item Done or dismisses it. The chase does not change the item's state.
 _Avoid_: Urgent, overdue, follow-up, blocked
 
 **Owed**:
@@ -51,7 +51,7 @@ A Reply the user has sent, or a Task the user has finished. It stays on the boar
 _Avoid_: Sent, closed, complete
 
 **Archived**:
-A Done Reply or Task kept in the folder and off the board after the workweek in which it was finished.
+A Done Reply or Task kept in the folder and off the board after the workweek in which it was finished. The app sets it the next time the folder is read in a later workweek, and it stays Archived.
 _Avoid_: Deleted, removed
 
 **Dropped**:

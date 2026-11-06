@@ -10,7 +10,7 @@ The shell, the count rows, the list and board switch, and the board are Arc comp
 
 ## Home
 
-Home is the Desk. Its heading is the weekday and the date. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. Those counts are not a score. The usable gaps sit beside the list.
+Home is the Desk. Its heading is the weekday and the date. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. Those counts are not a score, and the row does not add a count for Blocked or In Progress. Each row shows its state. The usable gaps sit beside the list.
 
 ## Owed
 
