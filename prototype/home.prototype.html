@@ -60,6 +60,10 @@
   .va header { padding: 1.4rem 1.6rem 0.4rem; }
   .va header h1 { font-size: 2rem; font-weight: 500; margin: 0; letter-spacing: -0.03em; }
   .va header p { margin: 0.2rem 0 0; color: #6b6258; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; }
+  .va .metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.75rem; margin: 1rem 0 0.2rem; padding-top: 0.8rem; border-top: 1px solid #d9d0c2; }
+  .va .metrics b { display: block; font: 1.7rem/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.04em; }
+  .va .metrics span { display: block; margin-top: 0.28rem; font: 11px/1.2 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #6b6258; }
+  .va .metrics .hot b { color: #9a3412; }
   .va .split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(16rem, 0.7fr); gap: 1.5rem; padding: 1rem 1.6rem 2rem; }
   .va article { border-top: 1px solid #d9d0c2; padding: 0.8rem 0; }
   .va article.escalated { box-shadow: inset 3px 0 0 #9a3412; padding-left: 0.7rem; }
@@ -114,6 +118,7 @@
   .vc input { width: 100%; margin: 0.4rem 0; border: 0; border-bottom: 1px solid #2a2118; background: transparent; padding: 0.35rem 0; }
   @media (max-width: 800px) {
     .va .split, .vb .days, .vc { grid-template-columns: 1fr; }
+    .va .metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .vc nav { flex-direction: row; overflow: auto; }
   }
 </style>
@@ -327,6 +332,18 @@ function gapList(day) {
   return day.gaps.map((gap) => `<div class="gap"><span>${clock(gap.start)}–${clock(gap.end)}</span><span>${hours(gap.end - gap.start)}</span></div>`).join("");
 }
 
+function metricRow(list) {
+  const minutes = allGaps().reduce((sum, day) => sum + day.gaps.reduce((gapSum, gap) => gapSum + (gap.end - gap.start), 0), 0);
+  const cells = [
+    ["Owed", String(list.length), false],
+    ["Escalated", String(list.filter((item) => item.escalated).length), true],
+    ["Replies", String(list.filter((item) => item.kind === "Reply").length), false],
+    ["Tasks", String(list.filter((item) => item.kind === "Task").length), false],
+    ["Usable", hours(minutes), false]
+  ];
+  return `<div class="metrics">${cells.map(([label, value, hot]) => `<div class="${hot && value !== "0" ? "hot" : ""}"><b>${esc(value)}</b><span>${esc(label)}</span></div>`).join("")}</div>`;
+}
+
 function renderA(list) {
   const rows = list.map((item) => `
     <article class="${item.escalated ? "escalated" : ""}">
@@ -340,7 +357,7 @@ function renderA(list) {
     </article>`).join("");
   const days = allGaps().map((day) => `<div class="day"><strong>${esc(day.label)}</strong>${gapList(day)}</div>`).join("");
   return `<div class="va">
-    <header><h1>Owed</h1><p>${list.length} on the list · sample week · next Cowork run 11:50am</p>${state.flash ? `<div class="flash">${esc(state.flash)}</div>` : ""}</header>
+    <header><h1>Owed</h1><p>Sample week · next Cowork run 11:50am</p>${metricRow(list)}${state.flash ? `<div class="flash">${esc(state.flash)}</div>` : ""}</header>
     <div class="split"><section>${rows || "<p>Nothing owed.</p>"}</section><aside><h3>Usable gaps</h3>${days}</aside></div>
   </div>`;
 }
