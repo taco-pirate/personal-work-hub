@@ -28,7 +28,7 @@ PersonalWorkHub/
 
 The app reads and writes that folder through a repository boundary. It does not call Microsoft Graph. It opens the Outlook on the web address stored in the file. Cowork copies that address in. Cowork cannot delete OneDrive files, so finishing an item sets a status and leaves the file in place.
 
-The first time the app opens, the user points it at their own OneDrive folder. That path sticks on this machine. It is not a sidebar destination. Until a folder is chosen, the app opens the synthetic sample week that ships with the layout. The sample contains no real mail. Once a folder is chosen, the app shows that folder, including when it is empty.
+The first time the app opens, the user points it at their own OneDrive folder. That path sticks on this machine. It is not a sidebar destination. Until a folder is chosen, the app opens the synthetic sample week that ships with the layout. The sample contains no real mail. Once a folder is chosen, the app shows that folder, including when it is empty. If that folder is later gone, the app asks again and shows the sample week until the user chooses. While a folder is in place, this version offers no way to switch it.
 
 # The list
 
@@ -78,6 +78,7 @@ The gap panel shows usable gaps of at least 15 minutes from now through the last
 
 These are not part of this version:
 
+- A way to point the app at a different folder while one is already in place.
 - A place to change the workday, the hours, or the zone.
 - A database behind the same repository boundary.
 - Cowork runs when mail or the calendar changes. The clock times remain the fallback.

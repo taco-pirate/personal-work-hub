@@ -6,6 +6,9 @@ Cowork runs at 7:50, 11:50, and 3:50 in the computer's time zone on the user's w
 
 ## Later
 
+**Folder**:
+A way to point the app at a different folder while one is already in place.
+
 **Workday**:
 A place to change the days, the hours, and the zone.
 
