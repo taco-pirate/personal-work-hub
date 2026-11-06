@@ -1,0 +1,3 @@
+# Markdown files in a personal OneDrive folder for the MVP
+
+Cowork can read and write OneDrive files and cannot see the local disk, and another person needs to run the same layout in their own OneDrive. The MVP stores each Reply and each Task as one Markdown file in a fixed folder. The app is the list. Excel and Planner were rejected: Excel is a second list Cowork must not fight for locks, and Planner plans live in a Microsoft 365 group and cannot hold a Reply. A database is the intended later store, so the app reads and writes through a repository boundary and does not treat the folder layout as permanent. Cowork cannot delete OneDrive files, so finishing an item sets a status and leaves the file in place.
