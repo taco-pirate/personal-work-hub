@@ -24,7 +24,9 @@ The board columns run left to right: Drafted, In Progress, Blocked, Ready, Done.
 
 ## Record
 
-A Reply and a Task each open as a record. There is no record number, priority, assignment, or caller. Back returns to the Desk, the Owed list, or the board, whichever opened it.
+A Reply and a Task each open as a record. There is no record number, priority, assignment, or caller. Each has its own address. Opening it adds a step in the browser's history. Refresh stays on that record. Copying the address opens it. The Back control on the page and the browser's Back button are the same step. Back returns to the Desk, the list, the board, or the calendar, whichever was showing.
+
+The list and the board have their own addresses, so a record opened from the board returns to the board. Choosing Owed in the sidebar opens the list.
 
 The record is one column. The header is the title and the state. Under that: the body, then the source, then the activity. The source shows who it is from, the Due, the Outlook address, and the action address. The activity is the Comments already on the item. There is no box for a new note. Another Reply or Task that shares the Source is listed under the activity. Defer, Drop, and Dismiss sit with the state. A Reply with a placeholder still cannot become Ready or Done.
 
@@ -32,4 +34,6 @@ Anything not on the record stays quiet. The Desk, the Owed rows, and the board c
 
 ## Calendar
 
-Calendar is the week, full width. Above it, a row counts meetings still ahead, the hours those meetings take, usable time left, Focus Time left, and how many meetings are Uncategorized. Those counts are facts about the week. Each remaining workday is a column, in time order. Consuming meetings and usable gaps both appear. Personal stays outside the workday. A meeting on this page can be given another category, and that choice sticks.
+Calendar is the week, full width. Above it, a row counts meetings still ahead, the hours those meetings take, usable time left, Focus Time left, and how many meetings are Uncategorized. Those counts are facts about the week. Each remaining workday is a column, in time order. Consuming meetings and usable gaps both appear. Personal stays outside the workday.
+
+A meeting block shows the time, the title, and the category. The whole block opens the meeting record. That record shows the title, the category, the time, and the Outlook address. The category is changed there, and the choice sticks. There is no draft, Defer, or Drop. The meeting's address works the same way as a Reply or a Task.
