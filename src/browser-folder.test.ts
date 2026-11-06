@@ -83,7 +83,22 @@ describe("the selected folder", () => {
     });
 
     expect(called).toBe(false);
-    expect(result).toEqual({ snapshot: null, gone: false, handle: null });
+    expect(result).toEqual({ snapshot: null, gone: false, blocked: false, handle: null });
+  });
+
+  it("keeps a saved folder that still needs permission", async () => {
+    const stored = directory("PersonalWorkHub", []);
+    stored.requestPermission = async () => "prompt";
+    let called = false;
+    const result = await recallDirectory(async () => stored, async () => {
+      called = true;
+      throw new Error("read");
+    });
+
+    expect(called).toBe(false);
+    expect(result.gone).toBe(false);
+    expect(result.blocked).toBe(true);
+    expect(result.handle).toBe(stored);
   });
 
   it("asks again when the saved folder can no longer be read", async () => {

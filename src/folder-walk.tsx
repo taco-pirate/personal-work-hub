@@ -15,7 +15,7 @@ export const FolderSteps = ({ guide, onSelect }: FolderStepsProps) => {
       {guide.steps.map((step) => <li key={step}>{step}</li>)}
     </ol>
     <div className="actions">
-      <button type="button" onClick={onSelect}>Select PersonalWorkHub</button>
+      <button type="button" onClick={onSelect}>{guide.action}</button>
     </div>
   </section>;
 };

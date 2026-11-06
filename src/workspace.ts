@@ -39,13 +39,14 @@ export const subscribe = (listener: () => void) => {
   return () => { listeners.delete(listener); };
 };
 
-const replace = (saved: string | null, snapshot: HubSnapshot | null) => {
+const replace = (saved: string | null, snapshot: HubSnapshot | null, blocked = false) => {
   session = openSession({
     demo: demoFolder(),
     now: localClock(),
     demoNow: SAMPLE_CLOCK,
     saved,
     read: () => snapshot,
+    blocked,
     writers,
   });
   publish();
@@ -55,7 +56,7 @@ export const recallChosenFolder = async () => {
   try {
     const recalled = await recallDirectory(loadStoredHandle, readDirectory);
     handle = recalled.handle;
-    replace(recalled.gone || recalled.snapshot ? "chosen" : null, recalled.snapshot);
+    replace(recalled.gone || recalled.snapshot || recalled.blocked ? "chosen" : null, recalled.snapshot, recalled.blocked);
   } catch {
     handle = null;
     replace(null, null);
@@ -72,8 +73,27 @@ const pickFromWindow = async (): Promise<DirectoryHandle | null> => {
   }
 };
 
+const allowSavedFolder = async () => {
+  const saved = handle;
+  if (!saved) return;
+  const permission = await saved.requestPermission?.({ mode: "readwrite" });
+  if (permission && permission !== "granted") return;
+  try {
+    const snapshot = await readDirectory(saved);
+    if (!session.accept(snapshot).ok) return;
+    publish();
+  } catch {
+    handle = null;
+    replace("chosen", null);
+  }
+};
+
 export const pickChosenFolder = async (pick: () => Promise<DirectoryHandle | null> = pickFromWindow) => {
   if (!session.guide.asking) return;
+  if (session.guide.action === "Allow PersonalWorkHub") {
+    await allowSavedFolder();
+    return;
+  }
   const next = await pick();
   if (!next || !session.guide.asking) return;
   let snapshot: HubSnapshot;

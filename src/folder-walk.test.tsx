@@ -10,6 +10,7 @@ describe("folder walkthrough", () => {
       asking: true,
       gone: false,
       notice: "Still missing meetings.",
+      action: "Select PersonalWorkHub",
       steps: ["Create meetings inside PersonalWorkHub.", "Select PersonalWorkHub."],
     }} onSelect={() => {}} />);
 
@@ -21,7 +22,7 @@ describe("folder walkthrough", () => {
   });
 
   it("renders nothing once PersonalWorkHub is in place", () => {
-    const html = renderToStaticMarkup(<FolderSteps guide={{ asking: false, gone: false, notice: "", steps: [] }} onSelect={() => {}} />);
+    const html = renderToStaticMarkup(<FolderSteps guide={{ asking: false, gone: false, notice: "", steps: [], action: "" }} onSelect={() => {}} />);
     expect(html).toBe("");
   });
 

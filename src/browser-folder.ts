@@ -54,15 +54,15 @@ async function writeText(handle: DirectoryHandle, directory: string, id: string,
 export async function recallDirectory(
   load: () => Promise<DirectoryHandle | null>,
   read: (handle: DirectoryHandle) => Promise<HubSnapshot>,
-): Promise<{ snapshot: HubSnapshot | null; gone: boolean; handle: DirectoryHandle | null }> {
+): Promise<{ snapshot: HubSnapshot | null; gone: boolean; blocked: boolean; handle: DirectoryHandle | null }> {
   const stored = await load();
-  if (!stored) return { snapshot: null, gone: false, handle: null };
+  if (!stored) return { snapshot: null, gone: false, blocked: false, handle: null };
   try {
     const permission = await stored.requestPermission?.({ mode: "readwrite" });
-    if (permission && permission !== "granted") return { snapshot: null, gone: true, handle: null };
-    return { snapshot: await read(stored), gone: false, handle: stored };
+    if (permission && permission !== "granted") return { snapshot: null, gone: false, blocked: true, handle: stored };
+    return { snapshot: await read(stored), gone: false, blocked: false, handle: stored };
   } catch {
-    return { snapshot: null, gone: true, handle: null };
+    return { snapshot: null, gone: true, blocked: false, handle: null };
   }
 }
 

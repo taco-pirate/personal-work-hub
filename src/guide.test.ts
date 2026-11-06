@@ -34,6 +34,7 @@ describe("choosing the folder", () => {
       asking: true,
       gone: false,
       notice: "",
+      action: "Select PersonalWorkHub",
       steps: [
         "Create PersonalWorkHub at the root of your OneDrive.",
         "Create replies, tasks, and meetings inside it.",
@@ -51,7 +52,7 @@ describe("choosing the folder", () => {
 
     expect(session.choose(folder)).toEqual({ ok: true });
     expect(seen).toEqual([folder]);
-    expect(session.guide).toEqual({ asking: false, gone: false, notice: "", steps: [] });
+    expect(session.guide).toEqual({ asking: false, gone: false, notice: "", steps: [], action: "" });
     expect(session.hub.source).toBe("folder");
     expect(session.hub.desk().cards).toEqual([]);
     expect(session.choose(writeHub("Notes", []))).toEqual({ ok: false, reason: "in place" });
@@ -133,6 +134,24 @@ describe("choosing the folder", () => {
     expect(session.guide.steps).toEqual([]);
     expect(session.accept(loadFolder(writeHub("Notes")))).toEqual({ ok: false, reason: "in place" });
     expect(session.hub.source).toBe("folder");
+  });
+
+  it("asks for permission again without calling the saved folder gone", () => {
+    const session = openSession({
+      demo: demo(),
+      now: NOW,
+      demoNow: NOW,
+      saved: "chosen",
+      blocked: true,
+      read: () => {
+        throw new Error("read");
+      },
+    });
+
+    expect(session.guide.gone).toBe(false);
+    expect(session.guide.notice).toBe("Allow PersonalWorkHub.");
+    expect(session.guide.action).toBe("Allow PersonalWorkHub");
+    expect(session.hub.source).toBe("demo");
   });
 
   it("does not search for OneDrive when the sample is gone", () => {

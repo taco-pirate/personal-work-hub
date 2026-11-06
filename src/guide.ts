@@ -8,7 +8,11 @@ export type Guide = {
   gone: boolean;
   notice: string;
   steps: string[];
+  action: string;
 };
+
+const SELECT = "Select PersonalWorkHub";
+const ALLOW = "Allow PersonalWorkHub";
 
 const REQUIRED = ["replies", "tasks", "meetings"] as const;
 
@@ -24,14 +28,18 @@ const list = (names: readonly string[]) => {
   return `${names.slice(0, -1).join(", ")}, and ${names.at(-1)}`;
 };
 
-export const guideFor = (choice: HubSnapshot | null, savedGone: boolean): Guide => {
-  if (choice?.ready) return { asking: false, gone: false, notice: "", steps: [] };
+export const guideFor = (choice: HubSnapshot | null, savedGone: boolean, blocked = false): Guide => {
+  if (choice?.ready) return { asking: false, gone: false, notice: "", steps: [], action: "" };
+  if (blocked && !choice) {
+    return { asking: true, gone: false, notice: `${ALLOW}.`, steps: [`${ALLOW}.`], action: ALLOW };
+  }
   if (!choice) {
     return {
       asking: true,
       gone: savedGone,
       notice: savedGone ? "The saved folder is gone." : "",
       steps: [...SETUP],
+      action: SELECT,
     };
   }
   if (choice.name !== "PersonalWorkHub") {
@@ -40,6 +48,7 @@ export const guideFor = (choice: HubSnapshot | null, savedGone: boolean): Guide 
       gone: false,
       notice: "Choose the folder named PersonalWorkHub.",
       steps: [...SETUP],
+      action: SELECT,
     };
   }
   const missing = REQUIRED.filter((dir) => !choice.directories.includes(dir));
@@ -47,7 +56,8 @@ export const guideFor = (choice: HubSnapshot | null, savedGone: boolean): Guide 
     asking: true,
     gone: false,
     notice: `Still missing ${list(missing)}.`,
-    steps: [`Create ${list(missing)} inside PersonalWorkHub.`, "Select PersonalWorkHub."],
+    steps: [`Create ${list(missing)} inside PersonalWorkHub.`, `${SELECT}.`],
+    action: SELECT,
   };
 };
 
@@ -75,11 +85,12 @@ export const openSession = (input: {
   demoNow: Clock;
   saved: string | null;
   read: FolderRead;
+  blocked?: boolean;
   writers?: () => FolderWriters | undefined;
 }): Session => {
   let choice: HubSnapshot | null = null;
   let savedGone = false;
-  if (input.saved) {
+  if (input.saved && !input.blocked) {
     choice = input.read(input.saved);
     savedGone = choice === null;
   }
@@ -101,7 +112,7 @@ export const openSession = (input: {
     hub = hubFor(snapshot);
   };
 
-  let guide = guideFor(choice, savedGone);
+  let guide = guideFor(choice, savedGone, input.blocked === true);
   let hub = hubFor(choice);
 
   return {
