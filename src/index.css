@@ -31,6 +31,15 @@ h1, h2, h3 { font-family: var(--font-display); }
 .row[data-escalated="true"] { box-shadow: inset 3px 0 0 var(--danger); }
 .row-title { font-weight: 560; }
 .record { max-width: 40rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.actions button, .actions input {
+  font: inherit; font-size: 12px; border: 1px solid var(--border); background: var(--surface);
+  color: inherit; border-radius: 0.5rem; padding: 0.35rem 0.6rem;
+}
+.actions button[aria-pressed="true"] { border-color: var(--foreground); }
+.actions button:focus-visible, .actions input:focus-visible { outline: 2px solid var(--foreground); outline-offset: 2px; }
+.actions button:disabled { opacity: 0.7; }
+.note { margin: 0; color: var(--danger); }
 .back, .theme {
   border: 0; background: transparent; color: var(--text-secondary); padding: 0; cursor: pointer; font: inherit;
 }

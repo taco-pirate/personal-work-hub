@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadFolder } from "./folder.ts";
+import { loadFolder, saveItem } from "./folder.ts";
 import { openHub } from "./hub.ts";
 
 const NOW = { date: "2026-11-04", minutes: 10 * 60 + 15 };
@@ -261,6 +261,189 @@ describe("sample Desk", () => {
     expect(texts).not.toMatch(/\w@\w/);
   });
 });
+
+describe("record moves", () => {
+  it("moves a Reply from Drafted straight to Ready and writes that state", () => {
+    const folder = writeHub({ "replies/note.md": item("Reply", "Send the note", "Drafted") });
+    const hub = openWritable(folder, NOW);
+
+    expect(hub.move("Reply", "note", "Ready")).toEqual({ ok: true });
+    expect(hub.record("Reply", "note")?.status).toBe("Ready");
+    expect(hub.desk().cards.map((card) => card.title)).toEqual(["Send the note"]);
+    expect(hub.list().map((row) => row.state)).toEqual(["Ready"]);
+    expect(readFileSync(join(folder, "replies", "note.md"), "utf8")).toContain("status: Ready");
+  });
+
+  it("refuses Ready and Done while a Reply still has a placeholder, then allows them once the fact is replaced", () => {
+    const body = "I will send it by [the day].\n\n## Comments\n- who: Ada\n  when: Wed 9:00am\n  outlook: https://outlook.office365.com/owa/?ItemID=chase\n  text: Need the day.\n";
+    const folder = writeHub({ "replies/note.md": item("Reply", "Send the note", "Drafted", {}, body) });
+    const hub = openWritable(folder, NOW);
+    const file = () => readFileSync(join(folder, "replies", "note.md"), "utf8");
+
+    expect(hub.move("Reply", "note", "In Progress")).toEqual({ ok: true });
+    expect(hub.move("Reply", "note", "Ready")).toEqual({ ok: false, reason: "placeholder" });
+    expect(hub.move("Reply", "note", "Done")).toEqual({ ok: false, reason: "placeholder" });
+    expect(hub.record("Reply", "note")?.status).toBe("In Progress");
+    expect(file()).toContain("status: In Progress");
+    expect(file()).toContain("[the day]");
+
+    expect(hub.replace("Reply", "note", "Thursday")).toEqual({ ok: true });
+    expect(hub.record("Reply", "note")?.body).toBe("I will send it by Thursday.");
+    expect(hub.move("Reply", "note", "Done")).toEqual({ ok: true });
+    expect(hub.desk().cards).toEqual([]);
+    expect(file()).toContain("status: Done");
+    expect(file()).toContain("finished: 2026-11-04");
+    expect(file()).toContain("I will send it by Thursday.");
+    expect(file()).not.toContain("[the day]");
+    expect(file()).toContain("https://outlook.office365.com/owa/?ItemID=chase");
+  });
+
+  it("writes a replacement fact as the user typed it", () => {
+    const folder = writeHub({ "replies/note.md": item("Reply", "Send the note", "Drafted", {}, "I will send it by [the day].") });
+    const hub = openWritable(folder, NOW);
+
+    expect(hub.replace("Reply", "note", "$&")).toEqual({ ok: true });
+    expect(hub.record("Reply", "note")?.body).toBe("I will send it by $&.");
+    expect(readFileSync(join(folder, "replies", "note.md"), "utf8")).toContain("I will send it by $&.");
+  });
+
+  it("defers an item off the Desk until the return date, then a read brings it back in the state it left", () => {
+    const folder = writeHub({ "replies/note.md": item("Reply", "Send the note", "Blocked") });
+    const hub = openWritable(folder, NOW);
+    const file = () => readFileSync(join(folder, "replies", "note.md"), "utf8");
+
+    expect(hub.defer("Reply", "note", "2026-11-10")).toEqual({ ok: true });
+    expect(hub.desk().cards).toEqual([]);
+    expect(hub.list()).toEqual([]);
+    expect(hub.move("Reply", "note", "Ready")).toEqual({ ok: false, reason: "closed" });
+    expect(hub.record("Reply", "note")).toMatchObject({ status: "Deferred", parked: "Blocked", returns: "Tue, Nov 10", moves: [] });
+    expect(file()).toContain("status: Deferred");
+    expect(file()).toContain("parked: Blocked");
+    expect(file()).toContain("returns: 2026-11-10");
+
+    const early = openWritable(folder, { date: "2026-11-09", minutes: 8 * 60 });
+    expect(early.list()).toEqual([]);
+    expect(early.record("Reply", "note")?.status).toBe("Deferred");
+
+    const back = openWritable(folder, { date: "2026-11-10", minutes: 8 * 60 });
+    expect(back.record("Reply", "note")?.status).toBe("Blocked");
+    expect(back.list().map((row) => row.state)).toEqual(["Blocked"]);
+    expect(back.desk().cards.map((card) => card.title)).toEqual(["Send the note"]);
+    expect(file()).toContain("status: Blocked");
+    expect(file()).toContain("returns: \n");
+    expect(file()).toContain("parked: \n");
+  });
+
+  it("drops an item off the Desk, leaves the file, and offers no way back", () => {
+    const folder = writeHub({ "tasks/badge.md": item("Task", "Send the form", "Ready") });
+    const hub = openWritable(folder, NOW);
+    const file = () => readFileSync(join(folder, "tasks", "badge.md"), "utf8");
+
+    expect(hub.drop("Task", "badge")).toEqual({ ok: true });
+    expect(hub.desk().cards).toEqual([]);
+    expect(hub.list()).toEqual([]);
+    expect(hub.record("Task", "badge")).toMatchObject({ status: "Dropped", moves: [] });
+    expect(hub.move("Task", "badge", "Drafted")).toEqual({ ok: false, reason: "closed" });
+    expect(hub.defer("Task", "badge", "2026-11-12")).toEqual({ ok: false, reason: "closed" });
+    expect(file()).toContain("status: Dropped");
+    expect(file()).not.toContain("status: Done");
+  });
+
+  it("clears Escalated and leaves the state as it was", () => {
+    const folder = writeHub({ "replies/note.md": item("Reply", "Send the note", "In Progress", { escalated: "true" }) });
+    const hub = openWritable(folder, NOW);
+    const file = () => readFileSync(join(folder, "replies", "note.md"), "utf8");
+
+    expect(hub.dismiss("Reply", "note")).toEqual({ ok: true });
+    expect(hub.record("Reply", "note")?.status).toBe("In Progress");
+    expect(hub.desk().cards[0]?.escalated).toBe(false);
+    expect(hub.list()[0]?.escalated).toBe(false);
+    expect(file()).toContain("status: In Progress");
+    expect(file()).toContain("escalated: false");
+  });
+
+  it("lets a Done item change state until a later workweek's read archives it", () => {
+    const folder = writeHub({ "tasks/badge.md": item("Task", "Send the form", "In Progress") });
+    const hub = openWritable(folder, NOW);
+    const file = () => readFileSync(join(folder, "tasks", "badge.md"), "utf8");
+
+    expect(hub.move("Task", "badge", "Done")).toEqual({ ok: true });
+    expect(hub.desk().cards).toEqual([]);
+    expect(hub.record("Task", "badge")?.moves).toEqual(["Drafted", "In Progress", "Blocked", "Ready", "Done"]);
+    expect(hub.move("Task", "badge", "Blocked")).toEqual({ ok: true });
+    expect(hub.list().map((row) => row.state)).toEqual(["Blocked"]);
+    expect(file()).toContain("status: Blocked");
+    expect(file()).toContain("finished: \n");
+
+    expect(hub.move("Task", "badge", "Done")).toEqual({ ok: true });
+    const friday = openWritable(folder, { date: "2026-11-06", minutes: 9 * 60 });
+    expect(friday.record("Task", "badge")?.status).toBe("Done");
+    expect(friday.move("Task", "badge", "Ready").ok).toBe(true);
+    expect(friday.move("Task", "badge", "Done").ok).toBe(true);
+
+    const sunday = openWritable(folder, { date: "2026-11-08", minutes: 12 * 60 });
+    expect(sunday.record("Task", "badge")?.status).toBe("Done");
+
+    const nextWeek = openWritable(folder, { date: "2026-11-09", minutes: 9 * 60 });
+    expect(nextWeek.record("Task", "badge")).toMatchObject({ status: "Archived", moves: [] });
+    expect(nextWeek.move("Task", "badge", "Drafted")).toEqual({ ok: false, reason: "closed" });
+    expect(nextWeek.drop("Task", "badge")).toEqual({ ok: false, reason: "closed" });
+    expect(nextWeek.desk().cards).toEqual([]);
+    expect(file()).toContain("status: Archived");
+  });
+
+  it("opens a Done, Deferred, Dropped, or Archived address and shows that state", () => {
+    const hub = openHub({ demo: demo(), chosen: null, now: NOW });
+
+    expect(hub.record("Reply", "roster")).toMatchObject({
+      status: "Done",
+      moves: ["Drafted", "In Progress", "Blocked", "Ready", "Done"],
+    });
+    expect(hub.record("Task", "vendor")).toMatchObject({ status: "Deferred", parked: "In Progress", returns: "Mon, Nov 9", moves: [] });
+    expect(hub.record("Task", "poster")).toMatchObject({ status: "Dropped", moves: [] });
+    expect(hub.record("Reply", "old")).toMatchObject({ status: "Archived", moves: [] });
+  });
+});
+
+function writeHub(files: Record<string, string>): string {
+  const root = mkdtempSync(join(tmpdir(), "hub-"));
+  const folder = join(root, "PersonalWorkHub");
+  for (const directory of ["replies", "tasks", "meetings"]) mkdirSync(join(folder, directory), { recursive: true });
+  for (const [path, text] of Object.entries(files)) {
+    mkdirSync(join(folder, path, ".."), { recursive: true });
+    writeFileSync(join(folder, path), text);
+  }
+  return folder;
+}
+
+function item(kind: "Reply" | "Task", title: string, status: string, extra: Record<string, string> = {}, body = "The draft."): string {
+  const fields: Record<string, string> = {
+    kind,
+    title,
+    status,
+    due: "",
+    escalated: "false",
+    created: "1",
+    finished: "",
+    returns: "",
+    parked: "",
+    source: "src",
+    from: "Ada",
+    outlook: "https://outlook.office365.com/owa/?ItemID=note",
+    action: "",
+    ...extra,
+  };
+  return `---\n${Object.entries(fields).map(([key, value]) => `${key}: ${value}`).join("\n")}\n---\n${body}\n`;
+}
+
+function openWritable(folder: string, now: { date: string; minutes: number }) {
+  return openHub({
+    demo: demo(),
+    chosen: loadFolder(folder),
+    now,
+    save: (stored) => saveItem(folder, stored),
+  });
+}
 
 function meeting(start: string, end: string, title: string, extra: Record<string, string> = {}): string {
   const fields = {
