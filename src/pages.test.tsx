@@ -86,6 +86,7 @@ describe("Calendar page", () => {
     );
 
     expect(html).toContain("Wednesday");
+    expect(html).toContain('data-days="3"');
     expect(html).toContain('href="/meetings/w-focus"');
     expect(html).toContain("Focus hold");
     expect(html).toContain("Focus Time");

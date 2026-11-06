@@ -47,7 +47,12 @@ h1, h2, h3 { font-family: var(--font-display); }
 .section h2 { margin: 0 0 0.4rem; font-size: 12px; font-weight: 560; color: var(--text-secondary); }
 .topbar-actions { display: flex; justify-content: flex-end; }
 .section a { overflow-wrap: anywhere; }
-.week { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; align-items: start; }
+.week { display: grid; gap: 0.75rem; align-items: start; }
+.week[data-days="1"] { grid-template-columns: minmax(0, 1fr); }
+.week[data-days="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.week[data-days="3"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.week[data-days="4"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.week[data-days="5"] { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .week h2 { margin: 0 0 0.45rem; font-size: 12px; font-weight: 560; }
 .week section { display: flex; flex-direction: column; gap: 0.35rem; }
 .block {

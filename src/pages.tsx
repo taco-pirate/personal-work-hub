@@ -180,7 +180,7 @@ export function CalendarPage() {
     <div className="metrics">
       {counts.map(([label, value, suffix]) => <MetricCard key={label} label={label} value={value} suffix={suffix || undefined} context="This workweek" />)}
     </div>
-    <div className="week">
+    <div className="week" data-days={calendar.days.length}>
       {calendar.days.map((day) => <section key={day.day}>
         <h2>{day.day}</h2>
         {day.blocks.map((block) => block.kind === "meeting"
