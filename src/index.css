@@ -46,6 +46,9 @@ h1, h2, h3 { font-family: var(--font-display); }
 .section { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border); }
 .section h2 { margin: 0 0 0.4rem; font-size: 12px; font-weight: 560; color: var(--text-secondary); }
 .topbar-actions { display: flex; justify-content: flex-end; }
+.walk { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+.walk ol { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; }
+.walk p { margin: 0; }
 .section a { overflow-wrap: anywhere; }
 .week { display: grid; gap: 0.75rem; align-items: start; }
 .week[data-days="1"] { grid-template-columns: minmax(0, 1fr); }
