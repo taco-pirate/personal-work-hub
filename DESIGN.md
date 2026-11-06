@@ -28,7 +28,7 @@ A Reply and a Task each open as a record. There is no record number, priority, a
 
 The list and the board have their own addresses, so a record opened from the board returns to the board. Choosing Owed in the sidebar opens the list.
 
-An address opens the record when the item is Done, Deferred, Dropped, or Archived, and the page shows that state. Archived cannot be moved back. A Dropped record stays off the lists. A Deferred record shows the date it returns.
+An address opens the record when the item is Done, Deferred, Dropped, or Archived, and the page shows that state. A Dropped or Deferred record does not offer a move back onto the list. A Deferred record shows the date it returns. Archived cannot be moved back. A Done record can still change state until it is Archived.
 
 The record is one column. The header is the title and the state. Under that: the body, then the source, then the activity. The source shows who it is from, the Due, the Outlook address, and the action address. The activity is the Comments already on the item. There is no box for a new note. Another Reply or Task that shares the Source is listed under the activity. Defer, Drop, and Dismiss sit with the state. A Reply with a placeholder still cannot become Ready or Done.
 

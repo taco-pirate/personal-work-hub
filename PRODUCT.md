@@ -45,7 +45,7 @@ Replies and Tasks share one pipeline. The states, in order, are Drafted, In Prog
 
 Done items stay on the board through the workweek in which they were finished. Once a later workweek has started, the app marks those items Archived the next time it reads the folder. There is no archive page. A card can leave Done until that happens. After that, it stays Archived. The file stays. They are not deleted.
 
-Defer asks for the date the item returns. Drop means the user will not do it. Drop is not Done. Neither Defer nor Drop is a state in the pipeline.
+Defer asks for the date the item returns. Drop means the user will not do it. Drop is not Done. Neither Defer nor Drop is a state in the pipeline. Once an item is Dropped or Deferred, its record does not offer a move back onto the list. A Deferred item returns on its date in the state it left. A Done item can leave Done until it is Archived.
 
 Only the user moves an item between those states, defers it, drops it, or dismisses Escalated. A chase does not change the state.
 
