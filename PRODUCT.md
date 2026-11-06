@@ -26,7 +26,7 @@ PersonalWorkHub/
   meetings/
 ```
 
-The app reads and writes that folder through a repository boundary. It does not call Microsoft Graph. It opens the Outlook on the web address stored in the file. Cowork copies that address in. Cowork cannot delete OneDrive files, so finishing an item sets a status and leaves the file in place.
+The app reads and writes that folder through a repository boundary. It does not create `replies`, `tasks`, or `meetings`. The user creates those folders. It does not call Microsoft Graph. It opens the Outlook on the web address stored in the file. Cowork copies that address in. Cowork cannot delete OneDrive files, so finishing an item sets a status and leaves the file in place.
 
 The first time the app opens, the user points it at their own OneDrive folder. That path sticks on this machine. It is not a sidebar destination. Until a folder is chosen, the app opens the synthetic sample week that ships with the layout. The sample contains no real mail. Once a folder is chosen, the app shows that folder, including when it is empty. If that folder is later gone, the app asks again and shows the sample week until the user chooses. While a folder is in place, this version offers no way to switch it.
 
