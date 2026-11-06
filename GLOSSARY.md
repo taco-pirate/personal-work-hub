@@ -31,7 +31,7 @@ A Reply or Task the user has not sent, finished, or dropped. A deferred item is 
 _Avoid_: Open item, inbox, active
 
 **Due**:
-The date a Source states that the work is owed. An item whose Source states no date has no Due.
+The time a Source states that the work is owed. When the Source names a day and no time, Due is the end of that workday. When the Source states no date, or two dates that disagree, there is no Due.
 _Avoid_: Deadline, target
 
 **Source**:
