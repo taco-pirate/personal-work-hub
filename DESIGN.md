@@ -12,7 +12,7 @@ The shell, the count rows, the list and board switch, and the board are Arc comp
 
 ## Home
 
-Home is the Desk. Its heading is the weekday and the date. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. Those counts are not a score, and the row does not add a count for Blocked or In Progress. The list is dense rows, the same rows as Owed. The usable gaps sit beside the list.
+Home is the Desk. Its heading is the weekday and the date. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. Those counts are not a score, and the row does not add a count for Blocked or In Progress. The owed work sits in quiet cards beside the usable gaps. A card does not carry the draft, the state control, Defer, Drop, or Dismiss. The whole card opens the record.
 
 ## Owed
 
@@ -20,13 +20,15 @@ Owed shows the same owed Replies and Tasks as the Desk, without the gaps. The pa
 
 A row shows the kind, the title, the state, the Due, who it is from, and whether it is Escalated. The row does not edit the item. Opening a row opens its record.
 
-The board columns run left to right: Drafted, In Progress, Blocked, Ready, Done. The swimlanes run top to bottom: Escalated, Due, No due. An Escalated item appears only in Escalated. Inside Due, earliest first. Inside No due, oldest first. Moving a card into a column sets that state. Dragging a card into another swimlane does not stick. A card opens the same record as a row. The Done column shows items finished this workweek. Archived items are off the board.
+The board columns run left to right: Drafted, In Progress, Blocked, Ready, Done. The swimlanes run top to bottom: Escalated, Due, No due. An Escalated item appears only in Escalated. Inside Due, earliest first. Inside No due, oldest first. Moving a card into a column sets that state. Dragging a card into another swimlane does not stick. A board card shows the kind, the title, the Due, and Escalated. It does not carry the draft, Defer, Drop, or Dismiss. The whole card opens the record. The Done column shows items finished this workweek. Archived items are off the board.
 
 ## Record
 
 A Reply and a Task each open as a record. There is no record number, priority, assignment, or caller. Back returns to the Desk, the Owed list, or the board, whichever opened it.
 
-The record is where the user sets the state, edits the draft, defers, drops, and dismisses Escalated. A Reply with a placeholder still cannot become Ready or Done.
+The record is one column. The header is the title and the state. Under that: the body, then the source, then the activity. The source shows who it is from, the Due, the Outlook address, and the action address. The activity is the Comments already on the item. There is no box for a new note. Another Reply or Task that shares the Source is listed under the activity. Defer, Drop, and Dismiss sit with the state. A Reply with a placeholder still cannot become Ready or Done.
+
+Anything not on the record stays quiet. The Desk, the Owed rows, and the board cards do not carry the draft or those actions.
 
 ## Calendar
 
