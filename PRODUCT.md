@@ -13,7 +13,7 @@ The words for the work live in `GLOSSARY.md`. The reasons for the storage, the c
 
 # This version
 
-The home screen is the owed list and the usable gaps beside it.
+The home screen is the Desk. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. The usable gaps sit beside the list.
 
 Cowork runs at 7:50, 11:50, and 3:50 in the user's time zone on the user's workdays, and whenever the user runs it.
 
@@ -80,4 +80,4 @@ These are not part of this version:
 
 # Out of this product
 
-This version does not send mail, complete work, or put anything on the calendar by itself. It does not estimate how long a Task takes. It does not score focus blocks, track a writing profile, or present productivity metrics.
+This version does not send mail, complete work, or put anything on the calendar by itself. It does not estimate how long a Task takes. It does not score focus blocks, track a writing profile, or present completion rates, response times, or other performance measures.
