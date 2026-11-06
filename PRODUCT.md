@@ -9,11 +9,11 @@ Personal Work Hub is the private list of what one person owes, and the usable ti
 
 A colleague has their own hub. They run the same app against the same folder layout in their own OneDrive. They never open someone else's hub.
 
-The words for the work live in `GLOSSARY.md`. The reasons for the storage, the calendar math, and the home screen live in `docs/adr/`.
+The words for the work live in `GLOSSARY.md`. The screens live in `DESIGN.md`. The reasons for the storage, the calendar math, and the home screen live in `docs/adr/`.
 
 # This version
 
-The home screen is the Desk. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. The usable gaps sit beside the list.
+The screens are arranged in `DESIGN.md`. Home is the Desk.
 
 Cowork runs at 7:50, 11:50, and 3:50 in the user's time zone on the user's workdays, and whenever the user runs it.
 

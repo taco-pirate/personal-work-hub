@@ -12,7 +12,7 @@ _Avoid_: Ready reply, draft reply, email response
 
 **Task**:
 A deed the user owes that is not an answer owed to someone. It stays owed until the user marks it done.
-_Avoid_: Action item, to-do, follow-up, commitment
+_Avoid_: Action item, actions, to-do, follow-up, commitment, deed
 
 **Action address**:
 The link where a Task's deed happens. Cowork fills it only when the email contains one clear link to that deed, and leaves it empty when there is none or more than one. It is never the Outlook address of the Source.
@@ -28,7 +28,7 @@ _Avoid_: Urgent, overdue, follow-up
 
 **Owed**:
 A Reply or Task the user has not sent, finished, or dropped. A deferred item is owed again on the date the user chose.
-_Avoid_: Open item, inbox, active
+_Avoid_: Open item, inbox, active, actions
 
 **Due**:
 The time a Source states that the work is owed. When the Source names a day and no time, Due is the configured end time on that calendar date. When the Source states no date, or two dates that disagree, there is no Due.
