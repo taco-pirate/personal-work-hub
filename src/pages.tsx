@@ -1,7 +1,7 @@
-import { useLayoutEffect } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MetricCard } from "@/components/arc/metric-card/metric-card";
-import type { Desk, OwedRow } from "./hub.ts";
+import type { Desk, OwedRow, Pipeline } from "./hub.ts";
 import { openHub, SAMPLE_CLOCK, type RecordView } from "./hub.ts";
 import { demoFolder } from "./demo.ts";
 import { toggleTheme } from "./theme.ts";
@@ -72,7 +72,9 @@ function hours(minutes: number): string {
 export function RecordPage({ kind }: { kind: "Reply" | "Task" }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [revision, setRevision] = useState(0);
   const record = hub.record(kind, id ?? "");
+  void revision;
   useLayoutEffect(() => {
     const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
     if (idx !== 0) return;
@@ -81,14 +83,48 @@ export function RecordPage({ kind }: { kind: "Reply" | "Task" }) {
     window.history.pushState({ idx: 1, key: "record", usr: null }, "", url);
   }, [id]);
   if (!record) return <p>Record not in this sample.</p>;
-  return <RecordBody record={record} onBack={() => navigate(-1)} />;
+  return <RecordBody key={`${record.kind}-${record.id}`} record={record} onBack={() => navigate(-1)} onChange={() => setRevision((value) => value + 1)} />;
 }
 
-function RecordBody({ record, onBack }: { record: RecordView; onBack: () => void }) {
+function RecordBody({ record, onBack, onChange }: { record: RecordView; onBack: () => void; onChange: () => void }) {
+  const [note, setNote] = useState("");
+  const [fact, setFact] = useState("");
+  const [returns, setReturns] = useState("");
+  const move = (state: Pipeline) => {
+    const result = hub.move(record.kind, record.id, state);
+    setNote(result.ok ? "" : "Replace the placeholder before this can become Ready or Done.");
+    onChange();
+  };
+  const defer = () => {
+    const result = hub.defer(record.kind, record.id, returns);
+    setNote(result.ok ? "" : "Choose the date this returns.");
+    onChange();
+  };
   return <article className="record page">
     <button className="back" type="button" onClick={onBack}>Back</button>
     <h1>{record.title}</h1>
     <p className="quiet">{record.status}</p>
+    {record.status === "Deferred" ? <p>Returns {record.returns}. Comes back {record.parked}.</p> : null}
+    <div className="actions">
+      {record.moves.map((state) => <button key={state} type="button" aria-pressed={state === record.status} disabled={state === record.status} onClick={() => move(state)}>{state}</button>)}
+      {record.moves.length > 0 ? <>
+        <label>Returns <input type="date" value={returns} onChange={(event) => setReturns(event.target.value)} /></label>
+        <button type="button" onClick={defer}>Defer</button>
+        <button type="button" onClick={() => { hub.drop(record.kind, record.id); setNote(""); onChange(); }}>Drop</button>
+      </> : null}
+      {record.escalated ? <button type="button" onClick={() => { hub.dismiss(record.kind, record.id); setNote(""); onChange(); }}>Dismiss</button> : null}
+    </div>
+    {record.placeholder ? <form className="actions" onSubmit={(event) => {
+      event.preventDefault();
+      const result = hub.replace(record.kind, record.id, fact);
+      setNote(result.ok ? "" : "Replace the placeholder with the fact you decided.");
+      if (result.ok) setFact("");
+      onChange();
+    }}>
+      <label>Replace “{record.placeholder}” <input value={fact} onChange={(event) => setFact(event.target.value)} /></label>
+      <button type="submit">Replace</button>
+    </form> : null}
+    {note ? <p className="note" role="status">{note}</p> : null}
     <section className="section"><h2>Body</h2><p>{record.body}</p></section>
     <section className="section">
       <h2>Source</h2>

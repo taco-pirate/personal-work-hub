@@ -1,5 +1,10 @@
 import type { Comment, HubSnapshot, StoredItem, StoredMeeting } from "./parse.ts";
 
+const PIPELINE = ["Drafted", "In Progress", "Blocked", "Ready", "Done"] as const;
+export type Pipeline = (typeof PIPELINE)[number];
+
+export type MoveResult = { ok: true } | { ok: false; reason: "placeholder" | "closed" | "date" };
+
 export type { Comment, HubSnapshot };
 
 export type Clock = { date: string; minutes: number };
@@ -37,11 +42,24 @@ export type RecordView = {
   action: string;
   comments: Comment[];
   sameSource: { id: string; kind: "Reply" | "Task"; title: string }[];
+  moves: Pipeline[];
+  returns: string;
+  parked: string;
+  placeholder: string;
+  escalated: boolean;
 };
 
 const WORK_START = 8 * 60;
 const WORK_END = 17 * 60;
-const OWED = new Set(["Drafted", "In Progress", "Blocked", "Ready"]);
+const OWED = new Set<string>(["Drafted", "In Progress", "Blocked", "Ready"]);
+
+function isPipeline(status: string): status is Pipeline {
+  return (PIPELINE as readonly string[]).includes(status);
+}
+
+function placeholderOf(body: string): string {
+  return body.match(/\[([^\][]+)\]/)?.[1] ?? "";
+}
 const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -61,6 +79,13 @@ function clockLabel(minutes: number): string {
   const minute = minutes % 60;
   const suffix = hour >= 12 ? "pm" : "am";
   return `${hour % 12 || 12}:${String(minute).padStart(2, "0")}${suffix}`;
+}
+
+function dayLabel(date: string): string {
+  if (!date) return "";
+  const day = Number(date.slice(8, 10));
+  const month = MONTHS[Number(date.slice(5, 7)) - 1];
+  return `${SHORT[weekdayIndex(date)]}, ${month} ${day}`;
 }
 
 function dueLabel(due: string, now: Clock): string {
@@ -151,6 +176,29 @@ function dayParts(date: string, meetings: StoredMeeting[], now: Clock): { kind: 
   return parts;
 }
 
+function weekStart(date: string): string {
+  const day = weekdayIndex(date);
+  const fromMonday = day === 0 ? 6 : day - 1;
+  const start = new Date(`${date}T12:00:00Z`);
+  start.setUTCDate(start.getUTCDate() - fromMonday);
+  return start.toISOString().slice(0, 10);
+}
+
+function settle(item: StoredItem, now: Clock): boolean {
+  let changed = false;
+  if (item.status === "Deferred" && item.returns && item.returns <= now.date && isPipeline(item.parked)) {
+    item.status = item.parked;
+    item.parked = "";
+    item.returns = "";
+    changed = true;
+  }
+  if (item.status === "Done" && item.finished && weekStart(item.finished) < weekStart(now.date)) {
+    item.status = "Archived";
+    changed = true;
+  }
+  return changed;
+}
+
 function owed(items: StoredItem[]): StoredItem[] {
   return items.filter((item) => OWED.has(item.status)).sort((a, b) => {
     if (a.escalated !== b.escalated) return a.escalated ? -1 : 1;
@@ -160,11 +208,14 @@ function owed(items: StoredItem[]): StoredItem[] {
   });
 }
 
-export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; now: Clock }) {
+export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; now: Clock; save?: (item: StoredItem) => void }) {
   const chosen = input.chosen?.ready ? input.chosen : null;
   const snapshot = chosen ?? input.demo;
   const source = chosen ? "folder" : "demo";
   const items = snapshot.items;
+  for (const item of items) {
+    if (settle(item, input.now)) input.save?.(item);
+  }
   return {
     source,
     desk(): Desk {
@@ -208,6 +259,53 @@ export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; 
         escalated: item.escalated,
       }));
     },
+    move(kind: "Reply" | "Task", id: string, state: Pipeline): MoveResult {
+      const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);
+      if (!item || !isPipeline(item.status)) return { ok: false, reason: "closed" };
+      if (item.kind === "Reply" && placeholderOf(item.body) && (state === "Ready" || state === "Done")) {
+        return { ok: false, reason: "placeholder" };
+      }
+      item.status = state;
+      item.finished = state === "Done" ? input.now.date : "";
+      item.parked = "";
+      item.returns = "";
+      input.save?.(item);
+      return { ok: true };
+    },
+    defer(kind: "Reply" | "Task", id: string, returns: string): MoveResult {
+      const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);
+      if (!item || !isPipeline(item.status)) return { ok: false, reason: "closed" };
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(returns)) return { ok: false, reason: "date" };
+      item.parked = item.status;
+      item.status = "Deferred";
+      item.returns = returns;
+      input.save?.(item);
+      return { ok: true };
+    },
+    drop(kind: "Reply" | "Task", id: string): MoveResult {
+      const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);
+      if (!item || !isPipeline(item.status)) return { ok: false, reason: "closed" };
+      item.status = "Dropped";
+      item.parked = "";
+      item.returns = "";
+      input.save?.(item);
+      return { ok: true };
+    },
+    dismiss(kind: "Reply" | "Task", id: string): MoveResult {
+      const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);
+      if (!item) return { ok: false, reason: "closed" };
+      item.escalated = false;
+      input.save?.(item);
+      return { ok: true };
+    },
+    replace(kind: "Reply" | "Task", id: string, fact: string): MoveResult {
+      const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);
+      if (!item || !isPipeline(item.status)) return { ok: false, reason: "closed" };
+      if (!fact.trim() || !placeholderOf(item.body)) return { ok: false, reason: "placeholder" };
+      item.body = item.body.replace(/\[[^\][]+\]/, fact);
+      input.save?.(item);
+      return { ok: true };
+    },
     record(kind: "Reply" | "Task", id: string): RecordView | null {
       const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);
       if (!item) return null;
@@ -226,6 +324,11 @@ export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; 
         action: item.action,
         comments: item.comments,
         sameSource,
+        moves: isPipeline(item.status) ? [...PIPELINE] : [],
+        returns: item.status === "Deferred" ? dayLabel(item.returns) : "",
+        parked: item.status === "Deferred" ? item.parked : "",
+        placeholder: item.kind === "Reply" ? placeholderOf(item.body) : "",
+        escalated: item.escalated,
       };
     },
   };

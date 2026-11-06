@@ -8,6 +8,9 @@ export type StoredItem = {
   due: string;
   escalated: boolean;
   created: number;
+  finished: string;
+  returns: string;
+  parked: string;
   source: string;
   from: string;
   outlook: string;
@@ -93,6 +96,9 @@ function itemFrom(file: FolderFile): StoredItem[] {
     due: fields.due ?? "",
     escalated: fields.escalated === "true",
     created: Number(fields.created ?? 0),
+    finished: fields.finished ?? "",
+    returns: fields.returns ?? "",
+    parked: fields.parked ?? "",
     source: fields.source ?? "",
     from: fields.from ?? "",
     outlook: fields.outlook ?? "",
@@ -100,6 +106,34 @@ function itemFrom(file: FolderFile): StoredItem[] {
     body: prose.body,
     comments: prose.comments,
   }];
+}
+
+export function renderItem(item: StoredItem): string {
+  const lines = [
+    "---",
+    `kind: ${item.kind}`,
+    `title: ${item.title}`,
+    `status: ${item.status}`,
+    `due: ${item.due}`,
+    `escalated: ${item.escalated ? "true" : "false"}`,
+    `created: ${item.created}`,
+    `finished: ${item.finished}`,
+    `returns: ${item.returns}`,
+    `parked: ${item.parked}`,
+    `source: ${item.source}`,
+    `from: ${item.from}`,
+    `outlook: ${item.outlook}`,
+    `action: ${item.action}`,
+    "---",
+    item.body,
+  ];
+  if (item.comments.length > 0) {
+    lines.push("", "## Comments");
+    for (const comment of item.comments) {
+      lines.push(`- who: ${comment.who}`, `  when: ${comment.when}`, `  outlook: ${comment.outlook}`, `  text: ${comment.text}`);
+    }
+  }
+  return `${lines.join("\n")}\n`;
 }
 
 function meetingFrom(file: FolderFile): StoredMeeting[] {

@@ -1,6 +1,6 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { snapshotFromFiles, type FolderFile, type HubSnapshot } from "./parse.ts";
+import { renderItem, snapshotFromFiles, type FolderFile, type HubSnapshot, type StoredItem } from "./parse.ts";
 
 export function loadFolder(path: string): HubSnapshot {
   const name = path.split("/").filter(Boolean).at(-1) ?? path;
@@ -22,4 +22,9 @@ export function loadFolder(path: string): HubSnapshot {
     }
   }
   return snapshotFromFiles(name, directories, files);
+}
+
+export function saveItem(folder: string, item: StoredItem) {
+  const directory = item.kind === "Task" ? "tasks" : "replies";
+  writeFileSync(join(folder, directory, `${item.id}.md`), renderItem(item));
 }
