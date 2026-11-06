@@ -79,3 +79,7 @@ _Avoid_: Private, out of office
 **Uncategorized**:
 A Meeting Cowork could not place in a category. It stays unlabeled until the user chooses one.
 _Avoid_: Unknown, other
+
+**Usable gap**:
+At least 15 minutes inside the workday, through the last workday of this week, that no consuming Meeting occupies. Free and Working elsewhere stay usable even when the Meeting is Uncategorized.
+_Avoid_: Free time, opening
