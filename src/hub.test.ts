@@ -298,6 +298,15 @@ describe("record moves", () => {
     expect(file()).toContain("https://outlook.office365.com/owa/?ItemID=chase");
   });
 
+  it("writes a replacement fact as the user typed it", () => {
+    const folder = writeHub({ "replies/note.md": item("Reply", "Send the note", "Drafted", {}, "I will send it by [the day].") });
+    const hub = openWritable(folder, NOW);
+
+    expect(hub.replace("Reply", "note", "$&")).toEqual({ ok: true });
+    expect(hub.record("Reply", "note")?.body).toBe("I will send it by $&.");
+    expect(readFileSync(join(folder, "replies", "note.md"), "utf8")).toContain("I will send it by $&.");
+  });
+
   it("defers an item off the Desk until the return date, then a read brings it back in the state it left", () => {
     const folder = writeHub({ "replies/note.md": item("Reply", "Send the note", "Blocked") });
     const hub = openWritable(folder, NOW);

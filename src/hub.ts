@@ -302,7 +302,7 @@ export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; 
       const item = items.find((candidate) => candidate.kind === kind && candidate.id === id);
       if (!item || !isPipeline(item.status)) return { ok: false, reason: "closed" };
       if (!fact.trim() || !placeholderOf(item.body)) return { ok: false, reason: "placeholder" };
-      item.body = item.body.replace(/\[[^\][]+\]/, fact);
+      item.body = item.body.replace(/\[[^\][]+\]/, () => fact);
       input.save?.(item);
       return { ok: true };
     },
