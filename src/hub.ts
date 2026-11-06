@@ -1,12 +1,10 @@
+import type { Comment, HubSnapshot, StoredItem, StoredMeeting } from "./parse.ts";
+
+export type { Comment, HubSnapshot };
+
 export type Clock = { date: string; minutes: number };
 
 export const SAMPLE_CLOCK: Clock = { date: "2026-11-04", minutes: 10 * 60 + 15 };
-
-export type LoadedFolder = {
-  name: string;
-  directories: string[];
-  files: { directory: string; id: string; text: string }[];
-};
 
 export type DeskCard = {
   id: string;
@@ -25,19 +23,6 @@ export type Desk = {
   gaps: { day: string; rows: GapRow[] }[];
 };
 
-const WORK_START = 8 * 60;
-const WORK_END = 17 * 60;
-const OWED = new Set(["Drafted", "In Progress", "Blocked", "Ready"]);
-const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function passes(folder: LoadedFolder): boolean {
-  return folder.name === "PersonalWorkHub" && ["replies", "tasks", "meetings"].every((dir) => folder.directories.includes(dir));
-}
-
-export type Comment = { who: string; when: string; text: string; outlook: string };
-
 export type RecordView = {
   id: string;
   kind: "Reply" | "Task";
@@ -52,94 +37,12 @@ export type RecordView = {
   sameSource: { id: string; kind: "Reply" | "Task"; title: string }[];
 };
 
-type Item = RecordView & { escalated: boolean; created: number; source: string };
-
-type Meeting = {
-  day: string;
-  start: number;
-  end: number;
-  category: string;
-  response: string;
-  showAs: string;
-  allDay: boolean;
-};
-
-function fieldsOf(text: string): Record<string, string> {
-  const match = text.match(/^---\n([\s\S]*?)\n---/);
-  const fields: Record<string, string> = {};
-  if (!match) return fields;
-  for (const line of match[1].split("\n")) {
-    const index = line.indexOf(":");
-    if (index === -1) continue;
-    fields[line.slice(0, index).trim()] = line.slice(index + 1).trim();
-  }
-  return fields;
-}
-
-function clockMinutes(value: string): number {
-  const [hour, minute] = value.split(":").map(Number);
-  return hour * 60 + minute;
-}
-
-function proseAndComments(text: string): { body: string; comments: Comment[] } {
-  const match = text.match(/^---\n[\s\S]*?\n---\n?/);
-  const rest = (match ? text.slice(match[0].length) : text).replace(/\s+$/, "");
-  const [prose, commentBlock] = rest.split(/\n## Comments\n/);
-  const comments: Comment[] = [];
-  if (commentBlock) {
-    for (const chunk of commentBlock.split(/\n(?=- )/)) {
-      const lines = chunk.replace(/^- /, "").split("\n");
-      const field = (name: string) => {
-        const line = lines.find((item) => item.trim().startsWith(`${name}:`));
-        return line ? line.trim().slice(name.length + 1).trim() : "";
-      };
-      if (!field("who")) continue;
-      comments.push({ who: field("who"), when: field("when"), outlook: field("outlook"), text: field("text") });
-    }
-  }
-  return { body: (prose ?? "").trim(), comments };
-}
-
-function itemsIn(folder: LoadedFolder): Item[] {
-  return folder.files.flatMap((file) => {
-    if (file.directory !== "replies" && file.directory !== "tasks") return [];
-    const fields = fieldsOf(file.text);
-    const prose = proseAndComments(file.text);
-    const item: Item = {
-      id: file.id,
-      kind: fields.kind === "Task" ? "Task" : "Reply",
-      title: fields.title ?? "",
-      status: fields.status ?? "",
-      due: fields.due ?? "",
-      escalated: fields.escalated === "true",
-      created: Number(fields.created ?? 0),
-      source: fields.source ?? "",
-      from: fields.from ?? "",
-      outlook: fields.outlook ?? "",
-      action: fields.action ?? "",
-      body: prose.body,
-      comments: prose.comments,
-      sameSource: [],
-    };
-    return [item];
-  });
-}
-
-function meetingsIn(folder: LoadedFolder): Meeting[] {
-  return folder.files.flatMap((file) => {
-    if (file.directory !== "meetings") return [];
-    const fields = fieldsOf(file.text);
-    return [{
-      day: fields.day ?? "",
-      start: fields.start ? clockMinutes(fields.start) : 0,
-      end: fields.end ? clockMinutes(fields.end) : 0,
-      category: fields.category ?? "",
-      response: fields.response ?? "",
-      showAs: fields.showAs ?? "",
-      allDay: fields.allDay === "true",
-    }];
-  });
-}
+const WORK_START = 8 * 60;
+const WORK_END = 17 * 60;
+const OWED = new Set(["Drafted", "In Progress", "Blocked", "Ready"]);
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function weekdayIndex(date: string): number {
   return new Date(`${date}T12:00:00Z`).getUTCDay();
@@ -166,18 +69,27 @@ function dueLabel(due: string, now: Clock): string {
   return `${when} ${clockLabel(time)}`;
 }
 
-function alive(meeting: Meeting): boolean {
-  return meeting.response !== "declined" && meeting.response !== "canceled";
+function clockMinutes(value: string): number {
+  const [hour, minute] = value.split(":").map(Number);
+  return hour * 60 + minute;
 }
 
-function consumes(meeting: Meeting): boolean {
-  if (!alive(meeting)) return false;
-  if (meeting.allDay) return meeting.response === "accepted" && (meeting.showAs === "busy" || meeting.showAs === "oof");
+type Rank = "accepted" | "tentative";
+
+function rank(meeting: StoredMeeting): Rank | "out" {
+  if (meeting.response === "declined" || meeting.response === "canceled") return "out";
+  if (meeting.organizer || meeting.response === "accepted" || meeting.response === "organizer") return "accepted";
+  return "tentative";
+}
+
+function blocksTime(meeting: StoredMeeting): boolean {
+  if (meeting.allDay) return rank(meeting) === "accepted" && (meeting.showAs === "busy" || meeting.showAs === "oof");
+  if (rank(meeting) === "out") return false;
   return meeting.category !== "Personal" && meeting.category !== "Focus Time" && meeting.showAs !== "free" && meeting.showAs !== "workingElsewhere";
 }
 
-function isFocus(meeting: Meeting): boolean {
-  return alive(meeting) && !meeting.allDay && meeting.category === "Focus Time";
+function isFocus(meeting: StoredMeeting): boolean {
+  return rank(meeting) !== "out" && !meeting.allDay && meeting.category === "Focus Time";
 }
 
 function remainingDays(now: Clock): string[] {
@@ -193,22 +105,35 @@ function remainingDays(now: Clock): string[] {
   return days;
 }
 
-function dayParts(date: string, meetings: Meeting[], now: Clock): { kind: "gap" | "focus"; start: number; end: number }[] {
+function dayParts(date: string, meetings: StoredMeeting[], now: Clock): { kind: "gap" | "focus"; start: number; end: number }[] {
   const start = date === now.date ? Math.max(now.minutes, WORK_START) : WORK_START;
   const marks: ("empty" | "focus" | "consume")[] = Array.from({ length: WORK_END - start }, () => "empty");
-  const paint = (from: number, to: number, kind: "focus" | "consume") => {
+  const held: boolean[] = Array.from({ length: marks.length }, () => false);
+  const paint = (meeting: StoredMeeting, kind: "focus" | "consume", respectHeld: boolean) => {
+    const from = meeting.allDay ? WORK_START : meeting.start;
+    const to = meeting.allDay ? WORK_END : meeting.end;
     for (let minute = Math.max(from, start); minute < Math.min(to, WORK_END); minute += 1) {
       const index = minute - start;
+      if (respectHeld && held[index]) continue;
       if (kind === "consume" || marks[index] === "empty") marks[index] = kind;
     }
   };
+  const paintRank = (wanted: Rank, respectHeld: boolean) => {
+    for (const meeting of meetings) {
+      if (meeting.day === date && rank(meeting) === wanted && isFocus(meeting)) paint(meeting, "focus", respectHeld);
+    }
+    for (const meeting of meetings) {
+      if (meeting.day === date && rank(meeting) === wanted && blocksTime(meeting)) paint(meeting, "consume", respectHeld);
+    }
+  };
+  paintRank("accepted", false);
   for (const meeting of meetings) {
-    if (meeting.day === date && isFocus(meeting)) paint(meeting.start, meeting.end, "focus");
+    if (meeting.day !== date || rank(meeting) !== "accepted") continue;
+    const from = meeting.allDay ? WORK_START : meeting.start;
+    const to = meeting.allDay ? WORK_END : meeting.end;
+    for (let minute = Math.max(from, start); minute < Math.min(to, WORK_END); minute += 1) held[minute - start] = true;
   }
-  for (const meeting of meetings) {
-    if (meeting.day !== date || !consumes(meeting)) continue;
-    paint(meeting.allDay ? WORK_START : meeting.start, meeting.allDay ? WORK_END : meeting.end, "consume");
-  }
+  paintRank("tentative", true);
   const parts: { kind: "gap" | "focus"; start: number; end: number }[] = [];
   let cursor = 0;
   while (cursor < marks.length) {
@@ -224,7 +149,7 @@ function dayParts(date: string, meetings: Meeting[], now: Clock): { kind: "gap" 
   return parts;
 }
 
-function owed(items: Item[]): Item[] {
+function owed(items: StoredItem[]): StoredItem[] {
   return items.filter((item) => OWED.has(item.status)).sort((a, b) => {
     if (a.escalated !== b.escalated) return a.escalated ? -1 : 1;
     if (Boolean(a.due) !== Boolean(b.due)) return a.due ? -1 : 1;
@@ -233,11 +158,11 @@ function owed(items: Item[]): Item[] {
   });
 }
 
-export function openHub(input: { demo: LoadedFolder; chosen: LoadedFolder | null; now: Clock }) {
-  const folder = input.chosen && passes(input.chosen) ? input.chosen : input.demo;
-  const source = input.chosen && passes(input.chosen) ? "folder" : "demo";
-  const items = itemsIn(folder);
-  const meetings = meetingsIn(folder);
+export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; now: Clock }) {
+  const chosen = input.chosen?.ready ? input.chosen : null;
+  const snapshot = chosen ?? input.demo;
+  const source = chosen ? "folder" : "demo";
+  const items = snapshot.items;
   return {
     source,
     desk(): Desk {
@@ -245,8 +170,8 @@ export function openHub(input: { demo: LoadedFolder; chosen: LoadedFolder | null
       const days = remainingDays(input.now);
       const gaps = days.map((date) => ({
         day: WEEKDAYS[weekdayIndex(date)],
-        rows: dayParts(date, meetings, input.now).map((part) => ({
-          label: `${part.kind === "focus" ? "Focus" : "Open"} ${clockLabel(part.start)}–${clockLabel(part.end)}`,
+        rows: dayParts(date, snapshot.meetings, input.now).map((part) => ({
+          label: `${part.kind === "focus" ? "Focus" : "Usable"} ${clockLabel(part.start)}–${clockLabel(part.end)}`,
           minutes: part.end - part.start,
         })),
       }));

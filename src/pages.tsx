@@ -87,7 +87,6 @@ export function RecordPage({ kind }: { kind: "Reply" | "Task" }) {
 function RecordBody({ record, onBack }: { record: RecordView; onBack: () => void }) {
   return <article className="record page">
     <button className="back" type="button" onClick={onBack}>Back</button>
-    <div className="kind">{record.kind}</div>
     <h1>{record.title}</h1>
     <p className="quiet">{record.status}</p>
     <section className="section"><h2>Body</h2><p>{record.body}</p></section>

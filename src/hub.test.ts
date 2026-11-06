@@ -1,9 +1,9 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { loadFolder } from "./folder.ts";
-import { openHub, type LoadedFolder } from "./hub.ts";
+import { openHub } from "./hub.ts";
 
 const NOW = { date: "2026-11-04", minutes: 10 * 60 + 15 };
 const demo = () => loadFolder("DEMO-PersonalWorkHub");
@@ -50,26 +50,26 @@ describe("sample Desk", () => {
         day: "Wednesday",
         rows: [
           { label: "Focus 10:15am–10:30am", minutes: 15 },
-          { label: "Open 10:30am–11:00am", minutes: 30 },
-          { label: "Open 12:00pm–2:30pm", minutes: 150 },
-          { label: "Open 3:30pm–4:00pm", minutes: 30 },
+          { label: "Usable 10:30am–11:00am", minutes: 30 },
+          { label: "Usable 12:00pm–2:30pm", minutes: 150 },
+          { label: "Usable 3:30pm–4:00pm", minutes: 30 },
         ],
       },
       {
         day: "Thursday",
         rows: [
-          { label: "Open 9:00am–10:30am", minutes: 90 },
-          { label: "Open 12:00pm–1:00pm", minutes: 60 },
+          { label: "Usable 9:00am–10:30am", minutes: 90 },
+          { label: "Usable 12:00pm–1:00pm", minutes: 60 },
           { label: "Focus 1:00pm–2:00pm", minutes: 60 },
-          { label: "Open 2:15pm–3:00pm", minutes: 45 },
-          { label: "Open 4:30pm–5:00pm", minutes: 30 },
+          { label: "Usable 2:15pm–3:00pm", minutes: 45 },
+          { label: "Usable 4:30pm–5:00pm", minutes: 30 },
         ],
       },
       {
         day: "Friday",
         rows: [
-          { label: "Open 8:00am–9:00am", minutes: 60 },
-          { label: "Open 12:00pm–3:00pm", minutes: 180 },
+          { label: "Usable 8:00am–9:00am", minutes: 60 },
+          { label: "Usable 12:00pm–3:00pm", minutes: 180 },
         ],
       },
     ]);
@@ -138,6 +138,50 @@ describe("sample Desk", () => {
     expect(sliver.gaps.flatMap((day) => day.rows).some((row) => row.minutes < 15)).toBe(false);
   });
 
+  it("lets the accepted meeting decide the minutes, and counts an unanswered invite as tentative", () => {
+    const friday = { date: "2026-11-06", minutes: 8 * 60 };
+    const focusWins = openHub({
+      demo: week([
+        meeting("10:00", "11:00", "Deep work", { category: "Focus Time" }),
+        meeting("10:00", "11:00", "Maybe review", { response: "tentative" }),
+      ]),
+      chosen: null,
+      now: friday,
+    }).desk();
+    expect(focusWins.counts.usableMinutes).toBe(540);
+
+    const personalWins = openHub({
+      demo: week([
+        meeting("12:00", "13:00", "Lunch", { category: "Personal" }),
+        meeting("12:00", "13:00", "Maybe review", { response: "tentative" }),
+      ]),
+      chosen: null,
+      now: friday,
+    }).desk();
+    expect(personalWins.counts.usableMinutes).toBe(540);
+
+    const unanswered = openHub({
+      demo: week([meeting("09:00", "12:00", "Invite", { response: "" })]),
+      chosen: null,
+      now: friday,
+    }).desk();
+    expect(unanswered.counts.usableMinutes).toBe(360);
+
+    const organized = openHub({
+      demo: week([meeting("09:00", "12:00", "Mine", { response: "", organizer: "true" })]),
+      chosen: null,
+      now: friday,
+    }).desk();
+    expect(organized.counts.usableMinutes).toBe(360);
+
+    const tentativeDay = openHub({
+      demo: week([meeting("00:00", "00:00", "Maybe away", { allDay: "true", response: "tentative", showAs: "busy" })]),
+      chosen: null,
+      now: friday,
+    }).desk();
+    expect(tentativeDay.counts.usableMinutes).toBe(540);
+  });
+
   it("lets an accepted busy all-day event consume the workday and leaves declined and working-elsewhere time usable", () => {
     const friday = { date: "2026-11-06", minutes: 8 * 60 };
     const busy = openHub({
@@ -163,7 +207,10 @@ describe("sample Desk", () => {
   });
 
   it("contains no real mail in the demo files", () => {
-    const texts = demo().files.map((file) => file.text).join("\n");
+    const root = "DEMO-PersonalWorkHub";
+    const texts = ["replies", "tasks", "meetings"].flatMap((directory) =>
+      readdirSync(join(root, directory)).map((file) => readFileSync(join(root, directory, file), "utf8")),
+    ).join("\n");
     expect(texts).not.toMatch(/\w@\w/);
   });
 });
@@ -183,19 +230,25 @@ function meeting(start: string, end: string, title: string, extra: Record<string
   return `---\n${Object.entries(fields).map(([key, value]) => `${key}: ${value}`).join("\n")}\n---\n`;
 }
 
-function week(meetings: string[]): LoadedFolder {
-  return {
-    name: "DEMO-PersonalWorkHub",
-    directories: ["replies", "tasks", "meetings"],
-    files: meetings.map((text, index) => ({ directory: "meetings", id: `m${index}`, text })),
-  };
+function week(meetings: string[]) {
+  return loadFolder(writeWeek(meetings));
+}
+
+function writeWeek(meetings: string[]): string {
+  const root = mkdtempSync(join(tmpdir(), "hub-"));
+  const folder = join(root, "DEMO-PersonalWorkHub");
+  mkdirSync(join(folder, "meetings"), { recursive: true });
+  mkdirSync(join(folder, "replies"), { recursive: true });
+  mkdirSync(join(folder, "tasks"), { recursive: true });
+  meetings.forEach((text, index) => writeFileSync(join(folder, "meetings", `m${index}.md`), text));
+  return folder;
 }
 
 function task(title: string): string {
   return `---\nkind: Task\ntitle: ${title}\nstatus: Drafted\ndue: \nescalated: false\ncreated: 1\nsource: x\nfrom: Someone\noutlook: https://outlook.office365.com/owa/?ItemID=x\naction: \n---\nBody\n`;
 }
 
-function tempFolder(name: string, files: Record<string, string> = {}, directories = ["replies", "tasks", "meetings"]): LoadedFolder {
+function tempFolder(name: string, files: Record<string, string> = {}, directories = ["replies", "tasks", "meetings"]) {
   const root = mkdtempSync(join(tmpdir(), "hub-"));
   const folder = join(root, name);
   for (const directory of directories) mkdirSync(join(folder, directory), { recursive: true });
