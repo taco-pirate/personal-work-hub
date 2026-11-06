@@ -47,8 +47,17 @@ h1, h2, h3 { font-family: var(--font-display); }
 .section h2 { margin: 0 0 0.4rem; font-size: 12px; font-weight: 560; color: var(--text-secondary); }
 .topbar-actions { display: flex; justify-content: flex-end; }
 .section a { overflow-wrap: anywhere; }
+.week { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; align-items: start; }
+.week h2 { margin: 0 0 0.45rem; font-size: 12px; font-weight: 560; }
+.week section { display: flex; flex-direction: column; gap: 0.35rem; }
+.block {
+  display: flex; flex-direction: column; gap: 0.15rem; padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border); border-radius: 0.6rem; background: var(--surface); color: inherit; text-decoration: none;
+}
+.block strong { font-weight: 560; }
+.block:focus-visible { outline: 2px solid var(--foreground); outline-offset: 2px; }
 @media (max-width: 900px) {
-  .metrics, .split { grid-template-columns: 1fr; }
+  .metrics, .split, .week { grid-template-columns: 1fr; }
   .row { grid-template-columns: 1fr 1fr; }
   .row-title { grid-column: 1 / -1; }
 }

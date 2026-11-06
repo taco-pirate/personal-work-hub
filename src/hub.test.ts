@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadFolder, saveItem } from "./folder.ts";
+import { loadFolder, saveItem, saveMeeting } from "./folder.ts";
 import { openHub } from "./hub.ts";
 
 const NOW = { date: "2026-11-04", minutes: 10 * 60 + 15 };
@@ -405,6 +405,84 @@ describe("record moves", () => {
   });
 });
 
+describe("calendar", () => {
+  it("shows the remaining workdays, the five counts, and meetings beside usable gaps", () => {
+    const calendar = openHub({ demo: demo(), chosen: null, now: NOW }).calendar();
+
+    expect(calendar.days.map((day) => day.day)).toEqual(["Wednesday", "Thursday", "Friday"]);
+    expect(calendar.counts).toEqual({
+      ahead: 12,
+      meetingMinutes: 930,
+      usableMinutes: 750,
+      focusMinutes: 75,
+      uncategorized: 1,
+    });
+    expect(calendar.days.map((day) => day.blocks.map((block) => block.title))).toEqual([
+      ["Focus hold", "Usable", "Sam 1:1", "Usable", "Design working session", "Usable", "Leadership staff"],
+      ["Operating review", "Usable", "Portal status", "Usable", "Focus hold", "Skip-level", "Hold, unlabeled", "Usable", "Ops review", "Usable"],
+      ["Usable", "Spec working session", "Usable", "On-call bridge"],
+    ]);
+    expect(calendar.days[0].blocks[0]).toEqual({
+      kind: "meeting",
+      id: "w-focus",
+      title: "Focus hold",
+      category: "Focus Time",
+      time: "9:00am–10:30am",
+    });
+    expect(calendar.days[0].blocks[1]).toEqual({ kind: "gap", id: "", title: "Usable", category: "", time: "10:30am–11:00am" });
+    expect(calendar.days[1].blocks[6]).toEqual({
+      kind: "meeting",
+      id: "t-free",
+      title: "Hold, unlabeled",
+      category: "Uncategorized",
+      time: "2:15pm–3:00pm",
+    });
+    expect(calendar.days[1].blocks[7].time).toBe("2:15pm–3:00pm");
+    const titles = calendar.days.flatMap((day) => day.blocks.map((block) => block.title));
+    expect(titles).not.toContain("Lunch");
+    expect(titles).not.toContain("Brown bag");
+    expect(titles).not.toContain("Service health");
+  });
+
+  it("stores the category chosen on the meeting", () => {
+    const folder = writeHub({
+      "meetings/review.md": meeting("10:00", "11:00", "Service health", {
+        outlook: "https://outlook.office365.com/owa/?ItemID=review",
+      }),
+    });
+    const hub = openWritable(folder, { date: "2026-11-06", minutes: 8 * 60 });
+
+    expect(hub.meeting("review")).toEqual({
+      id: "review",
+      title: "Service health",
+      category: "Operating Review",
+      time: "Fri, Nov 6, 10:00am–11:00am",
+      outlook: "https://outlook.office365.com/owa/?ItemID=review",
+      categories: ["Operating Review", "Focus Time", "1:1", "Working Session", "Projects", "Leadership", "Operational Support", "Personal", "Uncategorized"],
+    });
+    expect(hub.categorize("review", "Focus Time")).toEqual({ ok: true });
+    expect(hub.categorize("review", "Party")).toEqual({ ok: false, reason: "category" });
+    expect(hub.meeting("review")?.category).toBe("Focus Time");
+    expect(hub.calendar().days[0].blocks.find((block) => block.id === "review")?.category).toBe("Focus Time");
+    const text = readFileSync(join(folder, "meetings", "review.md"), "utf8");
+    expect(text).toContain("category: Focus Time");
+    expect(text).toContain("https://outlook.office365.com/owa/?ItemID=review");
+    expect(openWritable(folder, { date: "2026-11-06", minutes: 8 * 60 }).meeting("review")?.category).toBe("Focus Time");
+  });
+
+  it("keeps a Working elsewhere meeting on the day without consuming the gap", () => {
+    const folder = writeHub({
+      "meetings/elsewhere.md": meeting("09:00", "12:00", "Offsite", { category: "Uncategorized", showAs: "workingElsewhere" }),
+    });
+    const calendar = openWritable(folder, { date: "2026-11-06", minutes: 8 * 60 }).calendar();
+
+    expect(calendar.counts.usableMinutes).toBe(540);
+    expect(calendar.counts.uncategorized).toBe(1);
+    expect(calendar.days[0].blocks.map((block) => block.title)).toEqual(["Usable", "Offsite"]);
+    expect(calendar.days[0].blocks[0].time).toBe("8:00am–5:00pm");
+  });
+});
+
 function writeHub(files: Record<string, string>): string {
   const root = mkdtempSync(join(tmpdir(), "hub-"));
   const folder = join(root, "PersonalWorkHub");
@@ -442,6 +520,7 @@ function openWritable(folder: string, now: { date: string; minutes: number }) {
     chosen: loadFolder(folder),
     now,
     save: (stored) => saveItem(folder, stored),
+    saveMeeting: (stored) => saveMeeting(folder, stored),
   });
 }
 

@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { renderItem, snapshotFromFiles, type FolderFile, type HubSnapshot, type StoredItem } from "./parse.ts";
+import { renderItem, renderMeeting, snapshotFromFiles, type FolderFile, type HubSnapshot, type StoredItem, type StoredMeeting } from "./parse.ts";
 
 export function loadFolder(path: string): HubSnapshot {
   const name = path.split("/").filter(Boolean).at(-1) ?? path;
@@ -27,4 +27,8 @@ export function loadFolder(path: string): HubSnapshot {
 export function saveItem(folder: string, item: StoredItem) {
   const directory = item.kind === "Task" ? "tasks" : "replies";
   writeFileSync(join(folder, directory, `${item.id}.md`), renderItem(item));
+}
+
+export function saveMeeting(folder: string, meeting: StoredMeeting) {
+  writeFileSync(join(folder, "meetings", `${meeting.id}.md`), renderMeeting(meeting));
 }

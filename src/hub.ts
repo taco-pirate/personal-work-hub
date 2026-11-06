@@ -1,6 +1,7 @@
 import type { Comment, HubSnapshot, StoredItem, StoredMeeting } from "./parse.ts";
 
 const PIPELINE = ["Drafted", "In Progress", "Blocked", "Ready", "Done"] as const;
+export const CATEGORIES = ["Operating Review", "Focus Time", "1:1", "Working Session", "Projects", "Leadership", "Operational Support", "Personal", "Uncategorized"] as const;
 export type Pipeline = (typeof PIPELINE)[number];
 
 export type MoveResult = { ok: true } | { ok: false; reason: "placeholder" | "closed" | "date" };
@@ -29,6 +30,30 @@ export type Desk = {
   cards: DeskCard[];
   gaps: { day: string; rows: GapRow[] }[];
 };
+
+export type CalendarBlock = {
+  kind: "meeting" | "gap";
+  id: string;
+  title: string;
+  category: string;
+  time: string;
+};
+
+export type Calendar = {
+  counts: { ahead: number; meetingMinutes: number; usableMinutes: number; focusMinutes: number; uncategorized: number };
+  days: { day: string; blocks: CalendarBlock[] }[];
+};
+
+export type MeetingView = {
+  id: string;
+  title: string;
+  category: string;
+  time: string;
+  outlook: string;
+  categories: readonly string[];
+};
+
+export type CategoryResult = { ok: true } | { ok: false; reason: "category" };
 
 export type RecordView = {
   id: string;
@@ -208,7 +233,70 @@ function owed(items: StoredItem[]): StoredItem[] {
   });
 }
 
-export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; now: Clock; save?: (item: StoredItem) => void }) {
+function timeRange(start: number, end: number): string {
+  return `${clockLabel(start)}–${clockLabel(end)}`;
+}
+
+function onDay(meeting: StoredMeeting, date: string, now: Clock): boolean {
+  if (meeting.day !== date || rank(meeting) === "out" || meeting.category === "Personal") return false;
+  const windowStart = date === now.date ? Math.max(now.minutes, WORK_START) : WORK_START;
+  if (windowStart >= WORK_END) return false;
+  const from = meeting.allDay ? WORK_START : meeting.start;
+  const to = meeting.allDay ? WORK_END : meeting.end;
+  return to > windowStart && from < WORK_END;
+}
+
+function calendarOf(meetings: StoredMeeting[], now: Clock): Calendar {
+  const dates = remainingDays(now);
+  const shown = dates.flatMap((date) => meetings.filter((meeting) => onDay(meeting, date, now)));
+  const days = dates.map((date) => {
+    const visible = meetings.filter((meeting) => onDay(meeting, date, now));
+    const parts = dayParts(date, meetings, now).filter((part) => {
+      if (part.kind !== "focus") return true;
+      return !visible.some((meeting) => isFocus(meeting) && meeting.start < part.end && (meeting.allDay ? WORK_END : meeting.end) > part.start);
+    });
+    const rows = [
+      ...visible.map((meeting) => ({
+        start: meeting.allDay ? WORK_START : meeting.start,
+        block: {
+          kind: "meeting" as const,
+          id: meeting.id,
+          title: meeting.title,
+          category: meeting.category,
+          time: timeRange(meeting.allDay ? WORK_START : meeting.start, meeting.allDay ? WORK_END : meeting.end),
+        },
+      })),
+      ...parts.map((part) => ({
+        start: part.start,
+        block: { kind: "gap" as const, id: "", title: part.kind === "focus" ? "Focus" : "Usable", category: "", time: timeRange(part.start, part.end) },
+      })),
+    ].sort((a, b) => a.start - b.start || (a.block.kind === b.block.kind ? 0 : a.block.kind === "meeting" ? -1 : 1));
+    return { day: WEEKDAYS[weekdayIndex(date)], blocks: rows.map((row) => row.block) };
+  });
+  const usableMinutes = dates.reduce((total, date) => total + dayParts(date, meetings, now).reduce((sum, part) => sum + part.end - part.start, 0), 0);
+  const focusMinutes = dates.reduce((total, date) => total + dayParts(date, meetings, now).reduce((sum, part) => sum + (part.kind === "focus" ? part.end - part.start : 0), 0), 0);
+  return {
+    counts: {
+      ahead: shown.length,
+      meetingMinutes: shown.reduce((sum, meeting) => sum + (meeting.allDay ? WORK_END - WORK_START : meeting.end - meeting.start), 0),
+      usableMinutes,
+      focusMinutes,
+      uncategorized: shown.filter((meeting) => meeting.category === "Uncategorized").length,
+    },
+    days,
+  };
+}
+
+function isCategory(value: string): value is (typeof CATEGORIES)[number] {
+  return (CATEGORIES as readonly string[]).includes(value);
+}
+
+function meetingView(meeting: StoredMeeting): MeetingView {
+  const time = meeting.allDay ? `${dayLabel(meeting.day)}, all day` : `${dayLabel(meeting.day)}, ${timeRange(meeting.start, meeting.end)}`;
+  return { id: meeting.id, title: meeting.title, category: meeting.category, time, outlook: meeting.outlook, categories: CATEGORIES };
+}
+
+export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; now: Clock; save?: (item: StoredItem) => void; saveMeeting?: (meeting: StoredMeeting) => void }) {
   const chosen = input.chosen?.ready ? input.chosen : null;
   const snapshot = chosen ?? input.demo;
   const source = chosen ? "folder" : "demo";
@@ -247,6 +335,20 @@ export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; 
         })),
         gaps,
       };
+    },
+    calendar(): Calendar {
+      return calendarOf(snapshot.meetings, input.now);
+    },
+    meeting(id: string): MeetingView | null {
+      const meeting = snapshot.meetings.find((candidate) => candidate.id === id);
+      return meeting ? meetingView(meeting) : null;
+    },
+    categorize(id: string, category: string): CategoryResult {
+      const meeting = snapshot.meetings.find((candidate) => candidate.id === id);
+      if (!meeting || !isCategory(category)) return { ok: false, reason: "category" };
+      meeting.category = category;
+      input.saveMeeting?.(meeting);
+      return { ok: true };
     },
     list(): OwedRow[] {
       return owed(items).map((item) => ({
