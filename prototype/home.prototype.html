@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PROTOTYPE — Home screen</title>
+<!--
+  PROTOTYPE. Throwaway. Not production.
+  Question: what should the Personal Work Hub home screen look like?
+  Assumption: this is a UI question. The state model is already agreed.
+  Three variants, switchable via ?variant=A|B|C.
+  There is no app route yet, so this file is the whole prototype.
+  Open it directly, or run: python3 -m http.server 8765
+  Sample clock is Wednesday so the rest of the workweek is visible.
+-->
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body { padding-bottom: 8.5rem; }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  a { color: inherit; }
+
+  .chrome {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; justify-content: space-between; gap: 1rem; align-items: baseline;
+    padding: 0.45rem 0.9rem;
+    background: #111; color: #f4f0c8;
+    font: 12px/1.4 ui-monospace, monospace;
+  }
+  .chrome strong { color: #fff; font-weight: 650; }
+
+  .switcher {
+    position: fixed; z-index: 30; left: 50%; bottom: 1rem; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 0.35rem;
+    padding: 0.35rem; border-radius: 999px;
+    background: #111; color: #fff;
+    box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    font: 13px/1 ui-monospace, monospace;
+  }
+  .switcher button {
+    width: 2rem; height: 2rem; border: 0; border-radius: 999px;
+    background: #f4f0c8; color: #111;
+  }
+  .switcher .label { padding: 0 0.7rem; white-space: nowrap; }
+
+  .state-dock {
+    position: fixed; z-index: 25; right: 0.75rem; bottom: 4.4rem; width: min(28rem, calc(100% - 1.5rem));
+    background: #111; color: #d8d4bc; border-radius: 0.6rem;
+    font: 11px/1.45 ui-monospace, monospace;
+  }
+  .state-dock summary { cursor: pointer; padding: 0.45rem 0.7rem; color: #fff; }
+  .state-dock pre { margin: 0; padding: 0 0.7rem 0.7rem; max-height: 16rem; overflow: auto; white-space: pre-wrap; }
+
+  .flash { margin: 0.6rem 0; padding: 0.45rem 0.6rem; border-radius: 0.4rem; background: #fff4d6; color: #5c4300; }
+
+  /* A — Desk: scan the list, gaps in the margin */
+  .va { background: #f3efe6; color: #221c16; min-height: 100vh; font: 16px/1.45 Georgia, "Iowan Old Style", serif; }
+  .va header { padding: 1.4rem 1.6rem 0.4rem; }
+  .va header h1 { font-size: 2rem; font-weight: 500; margin: 0; letter-spacing: -0.03em; }
+  .va header p { margin: 0.2rem 0 0; color: #6b6258; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; }
+  .va .split { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(16rem, 0.7fr); gap: 1.5rem; padding: 1rem 1.6rem 2rem; }
+  .va article { border-top: 1px solid #d9d0c2; padding: 0.8rem 0; }
+  .va article.escalated { box-shadow: inset 3px 0 0 #9a3412; padding-left: 0.7rem; }
+  .va .row-top { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+  .va h2 { font-size: 1.2rem; margin: 0; font-weight: 560; }
+  .va .meta { font: 12px/1.3 ui-sans-serif, system-ui, sans-serif; color: #6b6258; text-align: right; }
+  .va .kind { font: 11px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; color: #9a3412; }
+  .va .draft, .va .note { font-size: 0.98rem; margin: 0.45rem 0; }
+  .va .actions, .va .links { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+  .va .actions button, .va .links a, .vb .dock button, .vb .dock a, .vc button, .vc a.btn {
+    border: 1px solid currentColor; background: transparent; color: inherit;
+    border-radius: 999px; padding: 0.28rem 0.7rem; text-decoration: none;
+    font: 12px/1.2 ui-sans-serif, system-ui, sans-serif;
+  }
+  .va input { border: 0; border-bottom: 1px solid #9a3412; background: transparent; min-width: 14rem; padding: 0.2rem 0; }
+  .va aside h3 { margin: 0 0 0.6rem; font: 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+  .va .day { margin-bottom: 1rem; }
+  .va .day strong { display: block; font: 14px/1.2 ui-sans-serif, system-ui, sans-serif; }
+  .va .gap { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.28rem 0; border-bottom: 1px dashed #d9d0c2; font: 13px/1.3 ui-sans-serif, system-ui, sans-serif; }
+
+  /* B — Week: time is the page, work is a dock */
+  .vb { background: #10141a; color: #e7ecf2; min-height: 100vh; font: 15px/1.4 ui-sans-serif, system-ui, sans-serif; }
+  .vb header { padding: 1.2rem 1.2rem 0.4rem; display: flex; justify-content: space-between; align-items: end; }
+  .vb h1 { margin: 0; font-size: 1.4rem; font-weight: 560; }
+  .vb header p { margin: 0; color: #93a0b0; font-size: 13px; }
+  .vb .days { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.7rem; padding: 0.6rem 1.2rem 8rem; min-height: 70vh; }
+  .vb .day { background: #1a212b; border-radius: 0.8rem; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.45rem; }
+  .vb .day h2 { margin: 0 0 0.3rem; font-size: 0.95rem; color: #93a0b0; font-weight: 550; }
+  .vb .gap { background: #d7f5c8; color: #13210f; border-radius: 0.55rem; padding: 0.7rem 0.75rem; display: flex; flex-direction: column; justify-content: space-between; }
+  .vb .gap b { font-size: 1.35rem; letter-spacing: -0.03em; }
+  .vb .busy { color: #6e7c8c; font-size: 12px; padding: 0.1rem 0.2rem; }
+  .vb .dock { position: sticky; bottom: 4.5rem; margin: 0 1.2rem; background: #0c1015; border: 1px solid #2a3542; border-radius: 0.8rem; padding: 0.7rem; }
+  .vb .picks { display: flex; gap: 0.4rem; overflow: auto; }
+  .vb .picks button { border: 1px solid #2a3542; background: transparent; color: #e7ecf2; border-radius: 0.5rem; padding: 0.4rem 0.6rem; text-align: left; white-space: nowrap; }
+  .vb .picks button.on { background: #e7ecf2; color: #10141a; }
+  .vb .detail { margin-top: 0.6rem; }
+  .vb .detail p { margin: 0.3rem 0; }
+  .vb input { background: #1a212b; color: #fff; border: 1px solid #2a3542; border-radius: 0.4rem; padding: 0.3rem 0.45rem; }
+
+  /* C — One at a time: the current item is the page */
+  .vc { background: #efe6d8; color: #2a2118; min-height: 100vh; font: 18px/1.45 Georgia, serif; display: grid; grid-template-columns: 7rem 1fr; }
+  .vc nav { padding: 1.2rem 0.4rem; display: flex; flex-direction: column; gap: 0.35rem; }
+  .vc nav button { border: 0; background: transparent; color: #8a7b6a; text-align: left; padding: 0.35rem; border-radius: 0.4rem; font: 12px/1.3 ui-sans-serif, system-ui, sans-serif; }
+  .vc nav button.on { background: #2a2118; color: #efe6d8; }
+  .vc main { max-width: 40rem; padding: 2.2rem 1.2rem 3rem 0; }
+  .vc .eyebrow { font: 12px/1 ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.12em; text-transform: uppercase; color: #8a4b2f; }
+  .vc h1 { font-size: 2.4rem; line-height: 1.05; font-weight: 500; margin: 0.4rem 0; letter-spacing: -0.03em; }
+  .vc .weekline { font: 14px/1.4 ui-sans-serif, system-ui, sans-serif; color: #6d5e4e; margin: 0 0 1rem; }
+  .vc .body { font-size: 1.2rem; }
+  .vc .comments { border-top: 1px solid #ddcbb6; margin-top: 1rem; padding-top: 0.6rem; font: 14px/1.4 ui-sans-serif, system-ui, sans-serif; }
+  .vc .actions { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 1rem; }
+  .vc input { width: 100%; margin: 0.4rem 0; border: 0; border-bottom: 1px solid #2a2118; background: transparent; padding: 0.35rem 0; }
+  @media (max-width: 800px) {
+    .va .split, .vb .days, .vc { grid-template-columns: 1fr; }
+    .vc nav { flex-direction: row; overflow: auto; }
+  }
+</style>
+</head>
+<body>
+  <div class="chrome">
+    <div><strong>PROTOTYPE</strong> — throwaway. Question: what should the home screen look like? Assumption: look, not the state model. Sample clock Wed Nov 4, 2026, 10:15am ET.</div>
+  </div>
+  <div id="app"></div>
+  <details class="state-dock" id="state-dock">
+    <summary>State</summary>
+    <pre id="state-json"></pre>
+  </details>
+  <div class="switcher" role="toolbar" aria-label="Prototype variants">
+    <button type="button" id="prev" aria-label="Previous variant">←</button>
+    <div class="label" id="variant-label">A</div>
+    <button type="button" id="next" aria-label="Next variant">→</button>
+  </div>
+<script>
+const VARIANTS = [
+  { key: "A", name: "Desk" },
+  { key: "B", name: "Week" },
+  { key: "C", name: "One at a time" }
+];
+
+const NOW = { date: "2026-11-04", minutes: 10 * 60 + 15 };
+const DAYS = [
+  { date: "2026-11-04", label: "Wednesday" },
+  { date: "2026-11-05", label: "Thursday" },
+  { date: "2026-11-06", label: "Friday" }
+];
+const WORK_START = 8 * 60;
+const WORK_END = 17 * 60;
+
+const meetings = [
+  { id: "w-or", day: "2026-11-04", start: 8 * 60, end: 9 * 60, title: "Service health", category: "Operating Review", response: "accepted", showAs: "busy" },
+  { id: "w-focus", day: "2026-11-04", start: 9 * 60, end: 10 * 60 + 30, title: "Focus hold", category: "Focus Time", response: "accepted", showAs: "busy" },
+  { id: "w-11", day: "2026-11-04", start: 11 * 60, end: 12 * 60, title: "Sam 1:1", category: "1:1", response: "accepted", showAs: "busy" },
+  { id: "w-lunch", day: "2026-11-04", start: 12 * 60, end: 13 * 60, title: "Lunch", category: "Personal", response: "accepted", showAs: "busy" },
+  { id: "w-declined", day: "2026-11-04", start: 13 * 60, end: 13 * 60 + 30, title: "Brown bag", category: "Working Session", response: "declined", showAs: "busy" },
+  { id: "w-ws", day: "2026-11-04", start: 14 * 60 + 30, end: 15 * 60 + 30, title: "Design working session", category: "Working Session", response: "tentative", showAs: "busy" },
+  { id: "w-lead", day: "2026-11-04", start: 16 * 60, end: 17 * 60, title: "Leadership staff", category: "Leadership", response: "accepted", showAs: "busy" },
+  { id: "t-or", day: "2026-11-05", start: 8 * 60, end: 9 * 60, title: "Operating review", category: "Operating Review", response: "accepted", showAs: "busy" },
+  { id: "t-proj", day: "2026-11-05", start: 10 * 60 + 30, end: 12 * 60, title: "Portal status", category: "Projects", response: "accepted", showAs: "busy" },
+  { id: "t-lunch", day: "2026-11-05", start: 12 * 60, end: 13 * 60, title: "Lunch", category: "Personal", response: "accepted", showAs: "busy" },
+  { id: "t-focus", day: "2026-11-05", start: 13 * 60, end: 14 * 60, title: "Focus hold", category: "Focus Time", response: "accepted", showAs: "busy" },
+  { id: "t-11", day: "2026-11-05", start: 14 * 60, end: 14 * 60 + 15, title: "Skip-level", category: "1:1", response: "accepted", showAs: "busy" },
+  { id: "t-free", day: "2026-11-05", start: 14 * 60 + 15, end: 15 * 60, title: "Hold, unlabeled", category: "Uncategorized", response: "accepted", showAs: "free" },
+  { id: "t-or2", day: "2026-11-05", start: 15 * 60, end: 16 * 60 + 30, title: "Ops review", category: "Operating Review", response: "accepted", showAs: "busy" },
+  { id: "f-ws", day: "2026-11-06", start: 9 * 60, end: 12 * 60, title: "Spec working session", category: "Working Session", response: "accepted", showAs: "busy" },
+  { id: "f-lunch", day: "2026-11-06", start: 12 * 60, end: 13 * 60, title: "Lunch", category: "Personal", response: "accepted", showAs: "busy" },
+  { id: "f-ops", day: "2026-11-06", start: 15 * 60, end: 17 * 60, title: "On-call bridge", category: "Operational Support", response: "tentative", showAs: "busy" }
+];
+
+const state = {
+  flash: "",
+  selectedId: "deck",
+  items: [
+    {
+      id: "deck",
+      kind: "Reply",
+      title: "Reply with notes on the Q4 deck",
+      status: "drafting",
+      due: "2026-11-05T17:00",
+      escalated: true,
+      edited: false,
+      from: "Priya Shah",
+      outlook: "https://outlook.office365.com/owa/?ItemID=deck",
+      action: "",
+      body: "Priya — I can send notes on the deck by [Confirm you can send notes by Thursday]. I'll focus on the recommendation slides.",
+      comments: [{ who: "Alex Chen", when: "Wed 8:12am", text: "Need the notes today. This is blocking the Thursday review.", outlook: "https://outlook.office365.com/owa/?ItemID=deck-chase" }]
+    },
+    {
+      id: "confirm",
+      kind: "Reply",
+      title: "Confirm Thursday's 1:1 still works",
+      status: "ready",
+      due: "2026-11-04T17:00",
+      escalated: false,
+      edited: true,
+      from: "Sam Ortiz",
+      outlook: "https://outlook.office365.com/owa/?ItemID=confirm",
+      action: "",
+      body: "Sam — Thursday at 2:00 still works. I'll bring the skip-level notes.",
+      comments: []
+    },
+    {
+      id: "training",
+      kind: "Task",
+      title: "Complete security training",
+      status: "open",
+      due: "2026-11-06T17:00",
+      escalated: false,
+      edited: false,
+      from: "Learning portal",
+      outlook: "https://outlook.office365.com/owa/?ItemID=training",
+      action: "https://learning.example.com/security",
+      body: "Finish the course. No reply is owed.",
+      comments: [{ who: "Learning portal", when: "Wed 7:02am", text: "Reminder: training is still due Friday.", outlook: "https://outlook.office365.com/owa/?ItemID=training-reminder" }]
+    },
+    {
+      id: "badge",
+      kind: "Task",
+      title: "Send facilities the badge form",
+      status: "open",
+      due: "",
+      escalated: false,
+      edited: false,
+      from: "Facilities",
+      outlook: "https://outlook.office365.com/owa/?ItemID=badge",
+      action: "",
+      body: "The email names no date and no single form link.",
+      comments: []
+    }
+  ]
+};
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+function pad(n) { return String(n).padStart(2, "0"); }
+function clock(minutes) { return pad(Math.floor(minutes / 60)) + ":" + pad(minutes % 60); }
+function hours(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h && m) return h + "h " + m + "m";
+  if (h) return h + "h";
+  return m + "m";
+}
+function dueLabel(due) {
+  if (!due) return "No due date";
+  const map = { "2026-11-04": "Today 5:00pm", "2026-11-05": "Thu 5:00pm", "2026-11-06": "Fri 5:00pm" };
+  return map[due.slice(0, 10)] || due;
+}
+function blocksTime(meeting) {
+  if (meeting.response === "declined" || meeting.response === "canceled") return false;
+  if (meeting.showAs === "free" || meeting.showAs === "workingElsewhere") return false;
+  if (meeting.category === "Focus Time") return false;
+  return true;
+}
+function gapsFor(day) {
+  const start = day === NOW.date ? Math.max(NOW.minutes, WORK_START) : WORK_START;
+  const blocks = meetings
+    .filter((meeting) => meeting.day === day && blocksTime(meeting))
+    .map((meeting) => [Math.max(meeting.start, start), Math.min(meeting.end, WORK_END)])
+    .filter(([a, b]) => b > a)
+    .sort((a, b) => a[0] - b[0]);
+  const gaps = [];
+  let cursor = start;
+  for (const [blockStart, blockEnd] of blocks) {
+    if (blockStart - cursor >= 15) gaps.push({ start: cursor, end: blockStart });
+    cursor = Math.max(cursor, blockEnd);
+  }
+  if (WORK_END - cursor >= 15) gaps.push({ start: cursor, end: WORK_END });
+  return gaps;
+}
+function allGaps() {
+  return DAYS.map((day) => ({ ...day, gaps: gapsFor(day.date) }));
+}
+function owed(items) {
+  return items.filter((item) => !["sent", "done", "dropped", "deferred"].includes(item.status));
+}
+function sorted(items) {
+  return owed(items).slice().sort((a, b) => {
+    if (a.escalated !== b.escalated) return a.escalated ? -1 : 1;
+    if (Boolean(a.due) !== Boolean(b.due)) return a.due ? -1 : 1;
+    if (a.due && b.due && a.due !== b.due) return a.due < b.due ? -1 : 1;
+    return 0;
+  });
+}
+function hasPlaceholder(item) { return item.body.includes("["); }
+function current() {
+  const list = sorted(state.items);
+  return list.find((item) => item.id === state.selectedId) || list[0] || null;
+}
+function snapshot() {
+  const list = sorted(state.items);
+  return {
+    clock: "Wednesday, Nov 4, 2026, 10:15am ET",
+    order: list.map((item) => ({ id: item.id, kind: item.kind, status: item.status, due: item.due || null, escalated: item.escalated })),
+    gaps: allGaps().map((day) => ({ day: day.label, gaps: day.gaps.map((gap) => clock(gap.start) + "–" + clock(gap.end) + " (" + hours(gap.end - gap.start) + ")" ) })),
+    hidden: state.items.filter((item) => !owed([item]).length).map((item) => ({ id: item.id, status: item.status })),
+    flash: state.flash
+  };
+}
+
+function actions(item) {
+  const buttons = [];
+  if (item.kind === "Reply" && item.status === "drafting") buttons.push(["approve", "Approve"]);
+  if (item.kind === "Reply" && item.status === "ready") buttons.push(["sent", "Mark sent"]);
+  if (item.kind === "Task") buttons.push(["done", "Mark done"]);
+  if (item.escalated) buttons.push(["dismiss", "Dismiss flag"]);
+  buttons.push(["defer", "Defer"], ["drop", "Drop"]);
+  return buttons.map(([action, label]) => `<button type="button" data-act="${action}" data-id="${item.id}">${label}</button>`).join("");
+}
+function links(item) {
+  const bits = [`<a class="btn" href="${esc(item.outlook)}" target="_blank" rel="noreferrer">Outlook</a>`];
+  if (item.action) bits.push(`<a class="btn" href="${esc(item.action)}" target="_blank" rel="noreferrer">Do the deed</a>`);
+  return bits.join("");
+}
+function placeholderField(item) {
+  if (item.kind !== "Reply" || item.status !== "drafting" || !hasPlaceholder(item)) return "";
+  return `<input data-fill="${item.id}" aria-label="Replace the placeholder" placeholder="Replace the bracketed fact" />`;
+}
+function comments(item) {
+  if (!item.comments.length) return "";
+  return `<div class="comments">${item.comments.map((comment) => `<div><strong>${esc(comment.who)}</strong> · ${esc(comment.when)} — ${esc(comment.text)} · <a href="${esc(comment.outlook)}">email</a></div>`).join("")}</div>`;
+}
+function gapList(day) {
+  if (!day.gaps.length) return `<div class="gap"><span>No usable gap left</span></div>`;
+  return day.gaps.map((gap) => `<div class="gap"><span>${clock(gap.start)}–${clock(gap.end)}</span><span>${hours(gap.end - gap.start)}</span></div>`).join("");
+}
+
+function renderA(list) {
+  const rows = list.map((item) => `
+    <article class="${item.escalated ? "escalated" : ""}">
+      <div class="kind">${esc(item.kind)}${item.escalated ? " · Escalated" : ""} · ${esc(item.status)}</div>
+      <div class="row-top"><h2>${esc(item.title)}</h2><div class="meta">${esc(dueLabel(item.due))}<br>${esc(item.from)}</div></div>
+      <p class="draft">${esc(item.body)}</p>
+      ${placeholderField(item)}
+      ${comments(item)}
+      <div class="links">${links(item)}</div>
+      <div class="actions">${actions(item)}</div>
+    </article>`).join("");
+  const days = allGaps().map((day) => `<div class="day"><strong>${esc(day.label)}</strong>${gapList(day)}</div>`).join("");
+  return `<div class="va">
+    <header><h1>Owed</h1><p>${list.length} on the list · sample week · next Cowork run 11:50am</p>${state.flash ? `<div class="flash">${esc(state.flash)}</div>` : ""}</header>
+    <div class="split"><section>${rows || "<p>Nothing owed.</p>"}</section><aside><h3>Usable gaps</h3>${days}</aside></div>
+  </div>`;
+}
+
+function renderB(list) {
+  const item = current();
+  const days = allGaps().map((day) => {
+    const start = day.date === NOW.date ? Math.max(NOW.minutes, WORK_START) : WORK_START;
+    const pieces = [];
+    let cursor = start;
+    const shown = [...day.gaps];
+    for (const gap of shown) {
+      if (gap.start > cursor) pieces.push(`<div class="busy">Busy ${clock(cursor)}–${clock(gap.start)}</div>`);
+      pieces.push(`<div class="gap" style="flex:${gap.end - gap.start}"><b>${clock(gap.start)}</b><span>${hours(gap.end - gap.start)} usable</span></div>`);
+      cursor = gap.end;
+    }
+    if (cursor < WORK_END) pieces.push(`<div class="busy">Busy ${clock(cursor)}–${clock(WORK_END)}</div>`);
+    return `<section class="day"><h2>${esc(day.label)}</h2>${pieces.join("") || "<div class='busy'>No usable gap</div>"}</section>`;
+  }).join("");
+  const picks = list.map((entry) => `<button type="button" data-select="${entry.id}" class="${item && item.id === entry.id ? "on" : ""}">${entry.escalated ? "▲ " : ""}${esc(entry.title)}</button>`).join("");
+  const detail = item ? `<div class="detail"><p><strong>${esc(item.kind)}</strong> · ${esc(item.status)} · ${esc(dueLabel(item.due))}</p><p>${esc(item.body)}</p>${placeholderField(item)}${comments(item)}<div class="actions">${links(item)}${actions(item)}</div></div>` : "<p>Nothing owed.</p>";
+  return `<div class="vb">
+    <header><h1>Rest of the week</h1><p>Gaps of 15 minutes or more. Work stays in the dock.</p></header>
+    ${state.flash ? `<div class="flash" style="margin:0 1.2rem">${esc(state.flash)}</div>` : ""}
+    <div class="days">${days}</div>
+    <div class="dock"><div class="picks">${picks}</div>${detail}</div>
+  </div>`;
+}
+
+function renderC(list) {
+  const item = current();
+  const index = list.map((entry) => `<button type="button" data-select="${entry.id}" class="${item && item.id === entry.id ? "on" : ""}">${esc(entry.title)}</button>`).join("");
+  const week = allGaps().map((day) => {
+    const total = day.gaps.reduce((sum, gap) => sum + (gap.end - gap.start), 0);
+    return esc(day.label.slice(0, 3)) + " " + hours(total);
+  }).join(" · ");
+  if (!item) return `<div class="vc"><nav></nav><main><h1>Nothing owed.</h1></main></div>`;
+  return `<div class="vc">
+    <nav>${index}</nav>
+    <main>
+      <div class="eyebrow">${item.escalated ? "Escalated · " : ""}${esc(item.kind)} · ${esc(item.status)} · ${list.indexOf(item) + 1} of ${list.length}</div>
+      <h1>${esc(item.title)}</h1>
+      <p class="weekline">${week} usable · ${esc(dueLabel(item.due))} · ${esc(item.from)}</p>
+      ${state.flash ? `<div class="flash">${esc(state.flash)}</div>` : ""}
+      <p class="body">${esc(item.body)}</p>
+      ${placeholderField(item)}
+      ${comments(item)}
+      <div class="actions">${links(item)}${actions(item)}</div>
+    </main>
+  </div>`;
+}
+
+function render() {
+  const list = sorted(state.items);
+  const params = new URLSearchParams(location.search);
+  const key = (params.get("variant") || "A").toUpperCase();
+  const variant = VARIANTS.find((entry) => entry.key === key) || VARIANTS[0];
+  const view = variant.key === "B" ? renderB(list) : variant.key === "C" ? renderC(list) : renderA(list);
+  document.getElementById("app").innerHTML = view;
+  document.getElementById("variant-label").textContent = variant.key + " · " + variant.name;
+  document.getElementById("state-json").textContent = JSON.stringify(snapshot(), null, 2);
+  document.title = "PROTOTYPE " + variant.key + " — " + variant.name;
+}
+
+function setVariant(key) {
+  const url = new URL(location.href);
+  url.searchParams.set("variant", key);
+  history.replaceState(null, "", url);
+  render();
+}
+function cycle(step) {
+  const params = new URLSearchParams(location.search);
+  const key = (params.get("variant") || "A").toUpperCase();
+  const index = Math.max(0, VARIANTS.findIndex((entry) => entry.key === key));
+  const next = VARIANTS[(index + step + VARIANTS.length) % VARIANTS.length];
+  setVariant(next.key);
+}
+function itemById(id) { return state.items.find((item) => item.id === id); }
+function act(name, id) {
+  const item = itemById(id);
+  if (!item) return;
+  state.selectedId = id;
+  state.flash = "";
+  if (name === "approve") {
+    if (hasPlaceholder(item)) state.flash = "Still a placeholder. Replace it before you approve.";
+    else item.status = "ready";
+  } else if (name === "sent") item.status = "sent";
+  else if (name === "done") item.status = "done";
+  else if (name === "drop") item.status = "dropped";
+  else if (name === "dismiss") item.escalated = false;
+  else if (name === "defer") {
+    const when = prompt("Return this on which date? Use YYYY-MM-DD.", "2026-11-06");
+    if (when) { item.status = "deferred"; item.returnOn = when; }
+  }
+  render();
+}
+
+document.getElementById("app").addEventListener("click", (event) => {
+  const select = event.target.closest("[data-select]");
+  if (select) { state.selectedId = select.dataset.select; state.flash = ""; render(); return; }
+  const button = event.target.closest("[data-act]");
+  if (button) act(button.dataset.act, button.dataset.id);
+});
+document.getElementById("app").addEventListener("change", (event) => {
+  const input = event.target.closest("[data-fill]");
+  if (!input) return;
+  const item = itemById(input.dataset.fill);
+  const value = input.value.trim();
+  if (!item || !value) return;
+  item.body = item.body.replace(/\[[^\]]+\]/, value);
+  item.edited = true;
+  state.flash = "";
+  render();
+});
+document.getElementById("prev").onclick = () => cycle(-1);
+document.getElementById("next").onclick = () => cycle(1);
+document.addEventListener("keydown", (event) => {
+  const tag = document.activeElement && document.activeElement.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || (document.activeElement && document.activeElement.isContentEditable)) return;
+  if (event.key === "ArrowLeft") cycle(-1);
+  if (event.key === "ArrowRight") cycle(1);
+});
+if (!new URLSearchParams(location.search).get("variant")) setVariant("A");
+else render();
+</script>
+</body>
+</html>
