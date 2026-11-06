@@ -14,8 +14,16 @@ _Avoid_: Ready reply, draft reply, email response
 A deed the user owes that is not an answer owed to someone. It stays owed until the user marks it done.
 _Avoid_: Action item, to-do, follow-up, commitment
 
+**Action address**:
+The link where a Task's deed happens. Cowork supplies it from the email when it can. It is never the Outlook address of the Source.
+_Avoid_: Portal link, URL
+
+**Comment**:
+A note added to an open Reply or Task when a later message chases that same item. It does not create another Reply or Task, and it does not change a Reply the user has edited.
+_Avoid_: Follow-up, update, nudge
+
 **Source**:
-The message or meeting an item came from. An email Source includes the Outlook on the web address of that message. Items that share a Source are linked, and finishing one does not finish the others.
+The message or meeting an item came from. An email Source includes the Outlook on the web address of that message, and a Meeting includes the Outlook on the web address of that event. Items that share a Source are linked, and finishing one does not finish the others.
 _Avoid_: Thread, original email
 
 ### Calendar
@@ -49,7 +57,7 @@ A meeting of more than two people about direction, staffing, or decisions the us
 _Avoid_: Leadership sync, staff meeting
 
 **Operational Support**:
-Live help for the running operation, including an incident, an escalation, or hands-on support.
+Live help for the running operation, including an incident bridge or hands-on support.
 _Avoid_: Incident bridge, support call
 
 **Personal**:
