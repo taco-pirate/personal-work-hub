@@ -15,12 +15,16 @@ A deed the user owes that is not an answer owed to someone. It stays owed until 
 _Avoid_: Action item, to-do, follow-up, commitment
 
 **Action address**:
-The link where a Task's deed happens. Cowork supplies it from the email when it can. It is never the Outlook address of the Source.
+The link where a Task's deed happens. Cowork fills it only when the email contains one clear link to that deed, and leaves it empty when there is none or more than one. It is never the Outlook address of the Source.
 _Avoid_: Portal link, URL
 
 **Comment**:
-A note added to an open Reply or Task when a later message chases that same item. It does not create another Reply or Task, and it does not change a Reply the user has edited.
+A note added to an open Reply or Task when a later message chases that same item. It keeps the Outlook on the web address of the chasing message. It does not create another Reply or Task, and it does not change a Reply the user has edited.
 _Avoid_: Follow-up, update, nudge
+
+**Escalated**:
+An open Reply or Task that a later chase squeezed, by moving the deadline earlier, saying it is overdue or blocking someone, or coming from a different person. A reminder from the same sender with the same deadline is a Comment only. The flag stays until the user finishes the item or dismisses it.
+_Avoid_: Urgent, overdue, follow-up
 
 **Source**:
 The message or meeting an item came from. An email Source includes the Outlook on the web address of that message, and a Meeting includes the Outlook on the web address of that event. Items that share a Source are linked, and finishing one does not finish the others.
