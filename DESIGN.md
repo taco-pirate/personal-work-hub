@@ -12,7 +12,7 @@ The shell, the count rows, the list and board switch, and the board are Arc comp
 
 ## Home
 
-Home is the Desk. Its heading is the weekday and the date. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. Those counts are not a score, and the row does not add a count for Blocked or In Progress. The owed work sits in quiet cards beside the usable gaps. A card does not carry the draft, the state control, Defer, Drop, or Dismiss. The whole card opens the record.
+Home is the Desk. Its heading is the weekday and the date. Above the owed list, a row counts what is owed, what is Escalated, how many are Replies, how many are Tasks, and how much usable time remains this workweek. Those counts are not a score, and the row does not add a count for Blocked or In Progress. The owed work sits in quiet cards beside the usable gaps. A card shows the kind, the title, the Due, and Escalated. It does not carry the draft, the state control, who it is from, Defer, Drop, or Dismiss. The whole card opens the record.
 
 ## Owed
 
