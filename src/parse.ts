@@ -20,6 +20,8 @@ export type StoredItem = {
 };
 
 export type StoredMeeting = {
+  id: string;
+  title: string;
   day: string;
   start: number;
   end: number;
@@ -28,6 +30,7 @@ export type StoredMeeting = {
   showAs: string;
   allDay: boolean;
   organizer: boolean;
+  outlook: string;
 };
 
 export type HubSnapshot = {
@@ -108,6 +111,26 @@ function itemFrom(file: FolderFile): StoredItem[] {
   }];
 }
 
+export function renderMeeting(meeting: StoredMeeting): string {
+  const clock = (minutes: number) => `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+  const lines = [
+    "---",
+    "kind: Meeting",
+    `title: ${meeting.title}`,
+    `day: ${meeting.day}`,
+    `start: ${clock(meeting.start)}`,
+    `end: ${clock(meeting.end)}`,
+    `category: ${meeting.category}`,
+    `response: ${meeting.response}`,
+    `showAs: ${meeting.showAs}`,
+  ];
+  if (meeting.allDay) lines.push("allDay: true");
+  if (meeting.organizer) lines.push("organizer: true");
+  if (meeting.outlook) lines.push(`outlook: ${meeting.outlook}`);
+  lines.push("---", "");
+  return `${lines.join("\n")}\n`;
+}
+
 export function renderItem(item: StoredItem): string {
   const lines = [
     "---",
@@ -140,6 +163,8 @@ function meetingFrom(file: FolderFile): StoredMeeting[] {
   if (file.directory !== "meetings") return [];
   const fields = fieldsOf(file.text);
   return [{
+    id: file.id,
+    title: fields.title ?? "",
     day: fields.day ?? "",
     start: fields.start ? clockMinutes(fields.start) : 0,
     end: fields.end ? clockMinutes(fields.end) : 0,
@@ -148,5 +173,6 @@ function meetingFrom(file: FolderFile): StoredMeeting[] {
     showAs: fields.showAs ?? "",
     allDay: fields.allDay === "true",
     organizer: fields.organizer === "true",
+    outlook: fields.outlook ?? "",
   }];
 }

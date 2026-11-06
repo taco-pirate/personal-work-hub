@@ -12,6 +12,14 @@ function recordPath(kind: "Reply" | "Task", id: string) {
   return `/${kind === "Reply" ? "replies" : "tasks"}/${id}`;
 }
 
+function rememberBack(fallback: string) {
+  const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+  if (idx !== 0) return;
+  const url = window.location.pathname + window.location.search + window.location.hash;
+  window.history.replaceState({ idx: 0, key: "back", usr: null }, "", fallback);
+  window.history.pushState({ idx: 1, key: "record", usr: null }, "", url);
+}
+
 function usableParts(minutes: number): { value: number; suffix: string } {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
@@ -75,13 +83,7 @@ export function RecordPage({ kind }: { kind: "Reply" | "Task" }) {
   const [revision, setRevision] = useState(0);
   const record = hub.record(kind, id ?? "");
   void revision;
-  useLayoutEffect(() => {
-    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
-    if (idx !== 0) return;
-    const url = window.location.pathname + window.location.search + window.location.hash;
-    window.history.replaceState({ idx: 0, key: "desk", usr: null }, "", "/");
-    window.history.pushState({ idx: 1, key: "record", usr: null }, "", url);
-  }, [id]);
+  useLayoutEffect(() => { rememberBack("/"); }, [id]);
   if (!record) return <p>Record not in this sample.</p>;
   return <RecordBody key={`${record.kind}-${record.id}`} record={record} onBack={() => navigate(-1)} onChange={() => setRevision((value) => value + 1)} />;
 }
@@ -164,6 +166,60 @@ function OwedRowLink({ row }: { row: OwedRow }) {
   </Link>;
 }
 
-export function NamedPage({ title }: { title: string }) {
-  return <div className="page"><h1>{title}</h1></div>;
+export function CalendarPage() {
+  const calendar = hub.calendar();
+  const counts = [
+    ["Meetings", calendar.counts.ahead, ""],
+    ["Hours", ...parts(calendar.counts.meetingMinutes)],
+    ["Usable", ...parts(calendar.counts.usableMinutes)],
+    ["Focus", ...parts(calendar.counts.focusMinutes)],
+    ["Uncategorized", calendar.counts.uncategorized, ""],
+  ] as const;
+  return <div className="page">
+    <header><h1>Calendar</h1></header>
+    <div className="metrics">
+      {counts.map(([label, value, suffix]) => <MetricCard key={label} label={label} value={value} suffix={suffix || undefined} context="This workweek" />)}
+    </div>
+    <div className="week" data-days={calendar.days.length}>
+      {calendar.days.map((day) => <section key={day.day}>
+        <h2>{day.day}</h2>
+        {day.blocks.map((block) => block.kind === "meeting"
+          ? <Link className="block" key={block.id} to={`/meetings/${block.id}`}>
+            <span className="due">{block.time}</span>
+            <strong>{block.title}</strong>
+            <span className="kind">{block.category}</span>
+          </Link>
+          : <div className="block" key={`${block.title}-${block.time}`}>
+            <span>{block.title}</span>
+            <span className="due">{block.time}</span>
+          </div>)}
+      </section>)}
+    </div>
+  </div>;
 }
+
+function parts(minutes: number): [number, string] {
+  const shaped = usableParts(minutes);
+  return [shaped.value, shaped.suffix];
+}
+
+export function MeetingPage() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [revision, setRevision] = useState(0);
+  const meeting = hub.meeting(id ?? "");
+  void revision;
+  useLayoutEffect(() => { rememberBack("/calendar"); }, [id]);
+  if (!meeting) return <p>Meeting not in this week.</p>;
+  return <article className="record page">
+    <button className="back" type="button" onClick={() => navigate(-1)}>Back</button>
+    <h1>{meeting.title}</h1>
+    <p className="quiet">{meeting.category}</p>
+    <p>{meeting.time}</p>
+    <p>{meeting.outlook ? <a href={meeting.outlook}>{meeting.outlook}</a> : "No Outlook address"}</p>
+    <div className="actions">
+      {meeting.categories.map((category) => <button key={category} type="button" aria-pressed={category === meeting.category} disabled={category === meeting.category} onClick={() => { hub.categorize(meeting.id, category); setRevision((value) => value + 1); }}>{category}</button>)}
+    </div>
+  </article>;
+}
+

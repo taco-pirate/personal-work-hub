@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { OwedPage, RecordPage } from "./pages.tsx";
+import { CalendarPage, MeetingPage, OwedPage, RecordPage } from "./pages.tsx";
 
 function recordHtml(path: string, kind: "Reply" | "Task") {
   return renderToStaticMarkup(
@@ -74,5 +74,40 @@ describe("Owed page", () => {
     expect(done).toContain(">Done<");
     expect(done).toContain(">Ready<");
     expect(done).not.toContain(">Dismiss<");
+  });
+});
+
+describe("Calendar page", () => {
+  it("shows the remaining week and opens a meeting without Defer or Drop", () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <CalendarPage />
+      </MemoryRouter>,
+    );
+
+    expect(html).toContain("Wednesday");
+    expect(html).toContain('data-days="3"');
+    expect(html).toContain('href="/meetings/w-focus"');
+    expect(html).toContain("Focus hold");
+    expect(html).toContain("Focus Time");
+    expect(html).toContain("Usable");
+    expect(html).toContain("Meetings");
+    expect(html).toContain("Uncategorized");
+    expect(html).not.toContain("Lunch");
+    expect(html).not.toContain("Brown bag");
+
+    const meeting = renderToStaticMarkup(
+      <MemoryRouter initialEntries={["/meetings/w-focus"]}>
+        <Routes>
+          <Route path="meetings/:id" element={<MeetingPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(meeting).toContain("Focus hold");
+    expect(meeting).toContain("9:00am–10:30am");
+    expect(meeting).toContain(">Personal<");
+    expect(meeting).not.toContain(">Defer<");
+    expect(meeting).not.toContain(">Drop<");
+    expect(meeting).not.toContain(">Ready<");
   });
 });
