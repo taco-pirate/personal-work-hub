@@ -26,6 +26,10 @@ _Avoid_: Follow-up, update, nudge
 An open Reply or Task that a later chase squeezed, by moving the deadline earlier, saying it is overdue or blocking someone, or coming from a different person. A reminder from the same sender with the same deadline is a Comment only. The flag stays until the user finishes the item or dismisses it.
 _Avoid_: Urgent, overdue, follow-up
 
+**Owed**:
+A Reply or Task the user has not sent, finished, or dropped. A deferred item is owed again on the date the user chose.
+_Avoid_: Open item, inbox, active
+
 **Source**:
 The message or meeting an item came from. An email Source includes the Outlook on the web address of that message, and a Meeting includes the Outlook on the web address of that event. Items that share a Source are linked, and finishing one does not finish the others.
 _Avoid_: Thread, original email
