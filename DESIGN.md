@@ -14,7 +14,9 @@ Home is the Desk. Its heading is the weekday and the date. Above the owed list, 
 
 ## Owed
 
-Owed shows the same owed Replies and Tasks as the Desk, without the gaps. Sent, done, and dropped items stay off both pages. The page opens as a list, in the Desk's order, with the Desk's actions. A switch turns that same set into a board. The page has no count row, search, or filter.
+Owed shows the same owed Replies and Tasks as the Desk, without the gaps. The page opens as a list, in the Desk's order, with the Desk's actions, and each row shows its state. A switch turns the set into a board. The page has no count row, search, or filter.
+
+The board columns run left to right: Drafted, In Progress, Blocked, Ready, Done. The swimlanes run top to bottom: Escalated, Due, No due. An Escalated item appears only in Escalated. Inside Due, earliest first. Inside No due, oldest first. Moving a card into a column sets that state. The Done column shows items finished this workweek. Archived items are off the board.
 
 ## Calendar
 

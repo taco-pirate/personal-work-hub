@@ -9,7 +9,7 @@ Personal Work Hub is the private list of what one person owes, and the usable ti
 
 A colleague has their own hub. They run the same app against the same folder layout in their own OneDrive. They never open someone else's hub.
 
-The words for the work live in `GLOSSARY.md`. The screens live in `DESIGN.md`. The reasons for the storage, the calendar math, and the home screen live in `docs/adr/`.
+The words for the work live in `GLOSSARY.md`. The screens live in `DESIGN.md`. The reasons for the storage, the calendar math, the home screen, and the shared states live in `docs/adr/`.
 
 # This version
 
@@ -32,7 +32,7 @@ Until the user points the app at their own folder, the app opens the synthetic s
 
 # The list
 
-The list shows owed Replies and Tasks.
+The list shows owed Replies and Tasks. Done, Archived, Dropped, and Deferred items stay off it. A Deferred item returns on its date, in the state it left.
 
 Order:
 
@@ -40,9 +40,13 @@ Order:
 2. Items with a Due, earliest first.
 3. Items with no Due, oldest first.
 
-A Reply moves from `drafting` to `ready` when the user approves it, and it stays on the list until the user marks it `sent`. A Task stays on the list until the user marks it `done`. Defer asks for the date the item returns, and the item leaves the list until that date. Drop means the user will not do it. Drop is not done. Sent, done, and dropped items stay in the folder and leave the list.
+Replies and Tasks share one pipeline. The states, in order, are Drafted, In Progress, Blocked, Ready, and Done. Cowork files every new Reply and every new Task as Drafted. The user may move an item to any of those states, including from Drafted straight to Ready. A Reply that still has a placeholder cannot become Ready or Done. Approve moves a Reply to Ready. Mark sent and Mark done move an item to Done.
 
-Cowork may create a Reply only in `drafting` and a Task only in `open`. Only the user marks an item sent, done, or dropped, and only the user dismisses Escalated.
+Done items stay on the board through the workweek in which they were finished. After that workweek they are Archived. The file stays. They are not deleted.
+
+Defer asks for the date the item returns. Drop means the user will not do it. Drop is not Done. Neither Defer nor Drop is a state in the pipeline.
+
+Only the user moves an item between those states, defers it, drops it, or dismisses Escalated.
 
 # Replies and tasks
 
