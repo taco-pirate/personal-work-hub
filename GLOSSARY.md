@@ -30,6 +30,10 @@ _Avoid_: Urgent, overdue, follow-up
 A Reply or Task the user has not sent, finished, or dropped. A deferred item is owed again on the date the user chose.
 _Avoid_: Open item, inbox, active
 
+**Due**:
+The date a Source states that the work is owed. An item whose Source states no date has no Due.
+_Avoid_: Deadline, target
+
 **Source**:
 The message or meeting an item came from. An email Source includes the Outlook on the web address of that message, and a Meeting includes the Outlook on the web address of that event. Items that share a Source are linked, and finishing one does not finish the others.
 _Avoid_: Thread, original email
