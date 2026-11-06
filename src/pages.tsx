@@ -1,7 +1,7 @@
 import { useLayoutEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MetricCard } from "@/components/arc/metric-card/metric-card";
-import type { Desk } from "./hub.ts";
+import type { Desk, OwedRow } from "./hub.ts";
 import { openHub, SAMPLE_CLOCK, type RecordView } from "./hub.ts";
 import { demoFolder } from "./demo.ts";
 import { toggleTheme } from "./theme.ts";
@@ -105,6 +105,27 @@ function RecordBody({ record, onBack }: { record: RecordView; onBack: () => void
       {record.sameSource.map((other) => <p key={other.id}><Link to={recordPath(other.kind, other.id)}>{other.kind}: {other.title}</Link></p>)}
     </section>}
   </article>;
+}
+
+export function OwedPage() {
+  const rows = hub.list();
+  return <div className="page">
+    <header><h1>Owed</h1></header>
+    <div className="rows">
+      {rows.map((row) => <OwedRowLink key={`${row.kind}-${row.id}`} row={row} />)}
+    </div>
+  </div>;
+}
+
+function OwedRowLink({ row }: { row: OwedRow }) {
+  return <Link className="row" data-escalated={row.escalated ? "true" : undefined} to={recordPath(row.kind, row.id)}>
+    <span className="kind">{row.kind}</span>
+    <span className="row-title">{row.title}</span>
+    <span>{row.state}</span>
+    <span className="due">{row.due}</span>
+    <span>{row.from}</span>
+    {row.escalated ? <span className="kind">Escalated</span> : <span />}
+  </Link>;
 }
 
 export function NamedPage({ title }: { title: string }) {
