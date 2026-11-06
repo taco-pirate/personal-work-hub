@@ -2,9 +2,12 @@
 
 ## This version
 
-Cowork runs at 7:50, 11:50, and 3:50 in the user's time zone on the user's workdays, and whenever the user runs it.
+Cowork runs at 7:50, 11:50, and 3:50 in the computer's time zone on the user's workdays, and whenever the user runs it. The workday is Monday through Friday, 8:00 to 5:00.
 
 ## Later
+
+**Workday**:
+A place to change the days, the hours, and the zone.
 
 **Live runs**:
 Cowork also runs when mail or the calendar changes, so a chase becomes a Comment without waiting for the next clock time. The clock times remain the fallback.
