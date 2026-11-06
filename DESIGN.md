@@ -6,6 +6,8 @@ How the Personal Work Hub screens are arranged. What is owed, and how time is co
 
 A sidebar and one content gutter. The sidebar is Home, Owed, and Calendar. It folds to an icon rail. This version has no inbox, projects, members, teams, or settings.
 
+The first time the app opens, the user points it at their OneDrive folder. That path sticks on this machine. It is not a sidebar item. Until a folder is chosen, the sample week shows.
+
 The shell, the count rows, the list and board switch, and the board are Arc components, including Arc Pro where that block is Pro. The density is a calm workspace: warm off-white, Geist, small type, one shared gutter, quiet borders. Appearance follows the system. The user can switch light or dark, and that choice sticks on this machine.
 
 ## Home

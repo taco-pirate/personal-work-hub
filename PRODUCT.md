@@ -15,7 +15,7 @@ The words for the work live in `GLOSSARY.md`. The screens live in `DESIGN.md`. T
 
 The screens are arranged in `DESIGN.md`. Home is the Desk.
 
-Cowork runs at 7:50, 11:50, and 3:50 in the user's time zone on the user's workdays, and whenever the user runs it.
+Cowork runs at 7:50, 11:50, and 3:50 in the computer's time zone on the user's workdays, and whenever the user runs it.
 
 Each Reply, Task, and Meeting is one Markdown file in a fixed folder in that person's OneDrive:
 
@@ -28,7 +28,7 @@ PersonalWorkHub/
 
 The app reads and writes that folder through a repository boundary. It does not call Microsoft Graph. It opens the Outlook on the web address stored in the file. Cowork copies that address in. Cowork cannot delete OneDrive files, so finishing an item sets a status and leaves the file in place.
 
-Until the user points the app at their own folder, the app opens the synthetic sample week that ships with the layout. The sample contains no real mail.
+The first time the app opens, the user points it at their own OneDrive folder. That path sticks on this machine. It is not a sidebar destination. Until a folder is chosen, the app opens the synthetic sample week that ships with the layout. The sample contains no real mail. Once a folder is chosen, the app shows that folder, including when it is empty.
 
 # The list
 
@@ -64,7 +64,7 @@ Seeing the same email again updates the item of that kind. It does not add a sec
 
 # Calendar
 
-The workday starts as Monday through Friday, 8:00 to 5:00, in the computer's time zone. The user can change the days, the hours, and the zone.
+The workday is Monday through Friday, 8:00 to 5:00, in the computer's time zone. This version has no screen to change the days, the hours, or the zone.
 
 Cowork gives every Meeting exactly one category, using the boundaries in `GLOSSARY.md`: Operating Review, Focus Time, 1:1, Working Session, Projects, Leadership, Operational Support, or Personal. When Cowork cannot tell, the category is Uncategorized. The user's choice sticks.
 
@@ -78,6 +78,7 @@ The gap panel shows usable gaps of at least 15 minutes from now through the last
 
 These are not part of this version:
 
+- A place to change the workday, the hours, or the zone.
 - A database behind the same repository boundary.
 - Cowork runs when mail or the calendar changes. The clock times remain the fallback.
 - The same Reply, Task, and openable-address jobs for a Teams chat or channel message. A Teams meeting already on the calendar is a Meeting now.
