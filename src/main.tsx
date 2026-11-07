@@ -18,6 +18,7 @@ createRoot(document.getElementById("root")!).render(
         <Route element={<App><Outlet /></App>}>
           <Route index element={<DeskPage />} />
           <Route path="owed" element={<OwedPage />} />
+          <Route path="owed/board" element={<OwedPage />} />
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="meetings/:id" element={<MeetingPage />} />
           <Route path="replies/:id" element={<RecordPage kind="Reply" />} />

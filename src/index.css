@@ -21,6 +21,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 .day { margin-bottom: 0.9rem; }
 .day strong { display: block; margin-bottom: 0.25rem; }
 .gap { padding: 0.35rem 0.55rem; margin-bottom: 0.3rem; border: 1px solid var(--border); border-radius: 0.6rem; }
+.owed-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
 .rows { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border); border-radius: 0.6rem; background: var(--surface); }
 .row {
   display: grid; grid-template-columns: 4.5rem minmax(0, 1.6fr) 6.5rem 6.5rem minmax(7rem, 0.8fr) 5.5rem;

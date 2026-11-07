@@ -77,6 +77,29 @@ describe("Owed page", () => {
   });
 });
 
+describe("Owed board", () => {
+  it("opens the board at its own address, with lanes, columns, and quiet cards", () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter initialEntries={["/owed/board"]}>
+        <OwedPage />
+      </MemoryRouter>,
+    );
+
+    expect(html).toContain('href="/replies/deck"');
+    expect(html).toContain('href="/replies/roster"');
+    expect(html.indexOf("Escalated")).toBeLessThan(html.indexOf("No due"));
+    expect(html.indexOf("Drafted")).toBeLessThan(html.indexOf(">Done<"));
+    expect(html).toContain("Reply with notes on the Q4 deck");
+    expect(html).toContain("Thu 5:00pm");
+    expect(html).toContain("Sent the on-call roster");
+    expect(html).toContain("Board");
+    expect(html).toContain("List");
+    for (const absent of ["Priya Shah", "Last week's status note", "Print the lobby poster", "Renew the vendor certificate", "Search", "Filter", "Defer", "Drop", "Dismiss", "<input", "<textarea", "<select"]) {
+      expect(html).not.toContain(absent);
+    }
+  });
+});
+
 describe("Calendar page", () => {
   it("shows the remaining week and opens a meeting without Defer or Drop", () => {
     const html = renderToStaticMarkup(
