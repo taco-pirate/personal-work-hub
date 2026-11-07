@@ -184,12 +184,12 @@ function OwedBoard() {
   return <div className="board">
     <div className="lane">
       <span />
-      {board.lanes[0].columns.map((column) => <h2 key={column.state}>{column.state}</h2>)}
+      {board.lanes[0].columns.map((column) => <h2 key={column.state} data-state={column.state}>{column.state}</h2>)}
     </div>
     {board.lanes.map((lane) => <div className="lane" key={lane.name} data-lane={lane.name}>
       <strong className="lane-name">{lane.name}</strong>
       {lane.columns.map((column) => <div className="column" key={column.state} data-state={column.state}>
-        {column.cards.map((card) => <BoardCardLink key={card.id} card={card} onMove={place} />)}
+        {column.cards.map((card) => <BoardCardLink key={`${card.kind}-${card.id}`} card={card} from={column.state} onMove={place} />)}
       </div>)}
     </div>)}
     {note ? <p className="note" role="status">{note}</p> : null}
@@ -203,7 +203,7 @@ function columnAt(x: number, y: number): Pipeline | null {
   return state ? state as Pipeline : null;
 }
 
-function BoardCardLink({ card, onMove }: { card: BoardCard; onMove: (card: BoardCard, state: Pipeline) => void }) {
+function BoardCardLink({ card, from, onMove }: { card: BoardCard; from: Pipeline; onMove: (card: BoardCard, state: Pipeline) => void }) {
   const gesture = useRef({ x: 0, y: 0, dragged: false });
   return <Link className="card" draggable={false} to={recordPath(card.kind, card.id)} onPointerDown={(event) => {
     if (event.button !== 0) return;
@@ -218,7 +218,7 @@ function BoardCardLink({ card, onMove }: { card: BoardCard; onMove: (card: Board
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     if (!gesture.current.dragged) return;
     const state = columnAt(event.clientX, event.clientY);
-    if (!state) return;
+    if (!state || state === from) return;
     event.preventDefault();
     onMove(card, state);
   }} onClick={(event) => {
