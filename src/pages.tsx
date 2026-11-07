@@ -1,8 +1,9 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { KanbanBoard, type KanbanCard } from "@/components/arc/blocks/kanban-board/kanban-board";
 import { MetricCard } from "@/components/arc/metric-card/metric-card";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
-import type { BoardCard, Desk, OwedRow, Pipeline } from "./hub.ts";
+import type { Desk, OwedRow, Pipeline } from "./hub.ts";
 import type { RecordView } from "./hub.ts";
 import { toggleTheme } from "./theme.ts";
 import { currentHub, subscribe } from "./workspace.ts";
@@ -171,64 +172,37 @@ function OwedList() {
   </div>;
 }
 
+const COLUMNS = ["Drafted", "In Progress", "Blocked", "Ready", "Done"] as const;
+
 function OwedBoard() {
   const [revision, setRevision] = useState(0);
   const [note, setNote] = useState("");
   const board = useHub().board();
   void revision;
-  const place = (card: { kind: "Reply" | "Task"; id: string }, state: Pipeline) => {
-    const result = currentHub().move(card.kind, card.id, state);
+  const cards: KanbanCard[] = board.lanes.flatMap((lane) => lane.columns.flatMap((column) => column.cards.map((card) => ({
+    id: `${card.kind}-${card.id}`,
+    title: card.title,
+    column: column.state,
+    assignee: "",
+    lane: lane.name,
+    kind: card.kind,
+    due: card.due,
+    escalated: card.escalated,
+    href: recordPath(card.kind, card.id),
+  }))));
+  const move = (card: KanbanCard, column: string) => {
+    const kind = card.id.startsWith("Reply-") ? "Reply" : "Task";
+    const id = card.id.slice(kind.length + 1);
+    if (!COLUMNS.includes(column as Pipeline)) return false;
+    const result = currentHub().move(kind, id, column as Pipeline);
     setNote(result.ok ? "" : "Replace the placeholder before this can become Ready or Done.");
     setRevision((value) => value + 1);
+    return result.ok;
   };
-  return <div className="board">
-    <div className="lane">
-      <span />
-      {board.lanes[0].columns.map((column) => <h2 key={column.state} data-state={column.state}>{column.state}</h2>)}
-    </div>
-    {board.lanes.map((lane) => <div className="lane" key={lane.name} data-lane={lane.name}>
-      <strong className="lane-name">{lane.name}</strong>
-      {lane.columns.map((column) => <div className="column" key={column.state} data-state={column.state}>
-        {column.cards.map((card) => <BoardCardLink key={`${card.kind}-${card.id}`} card={card} from={column.state} onMove={place} />)}
-      </div>)}
-    </div>)}
+  return <>
+    <KanbanBoard columns={COLUMNS.map((state) => ({ id: state, name: state }))} swimlanes={board.lanes.map((lane) => ({ id: lane.name, name: lane.name }))} cards={cards} people={[]} onMove={move} />
     {note ? <p className="note" role="status">{note}</p> : null}
-  </div>;
-}
-
-const COLUMNS = ["Drafted", "In Progress", "Blocked", "Ready", "Done"] as const;
-
-function columnAt(x: number, y: number): Pipeline | null {
-  const state = document.elementsFromPoint(x, y).map((node) => node.closest("[data-state]")?.getAttribute("data-state") ?? "").find((value) => (COLUMNS as readonly string[]).includes(value));
-  return state ? state as Pipeline : null;
-}
-
-function BoardCardLink({ card, from, onMove }: { card: BoardCard; from: Pipeline; onMove: (card: BoardCard, state: Pipeline) => void }) {
-  const gesture = useRef({ x: 0, y: 0, dragged: false });
-  return <Link className="card" draggable={false} to={recordPath(card.kind, card.id)} onPointerDown={(event) => {
-    if (event.button !== 0) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    gesture.current.x = event.clientX;
-    gesture.current.y = event.clientY;
-    gesture.current.dragged = false;
-  }} onPointerMove={(event) => {
-    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
-    if (Math.hypot(event.clientX - gesture.current.x, event.clientY - gesture.current.y) > 6) gesture.current.dragged = true;
-  }} onPointerUp={(event) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-    if (!gesture.current.dragged) return;
-    const state = columnAt(event.clientX, event.clientY);
-    if (!state || state === from) return;
-    event.preventDefault();
-    onMove(card, state);
-  }} onClick={(event) => {
-    if (!gesture.current.dragged) return;
-    event.preventDefault();
-    gesture.current.dragged = false;
-  }}>
-    <div className="kind">{card.kind}{card.escalated ? " · Escalated" : ""}</div>
-    <div className="card-top"><strong>{card.title}</strong><span className="due">{card.due}</span></div>
-  </Link>;
+  </>;
 }
 
 function OwedRowLink({ row }: { row: OwedRow }) {
