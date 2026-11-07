@@ -22,6 +22,14 @@ export type DeskCard = {
 
 export type OwedRow = DeskCard & { state: string; from: string };
 
+export type BoardCard = DeskCard;
+
+export type BoardLane = "Escalated" | "Due" | "No due";
+
+export type Board = {
+  lanes: { name: BoardLane; columns: { state: Pipeline; cards: BoardCard[] }[] }[];
+};
+
 export type GapRow = { label: string; minutes: number };
 
 export type Desk = {
@@ -224,6 +232,43 @@ function settle(item: StoredItem, now: Clock): boolean {
   return changed;
 }
 
+function laneOf(item: StoredItem): BoardLane {
+  if (item.escalated) return "Escalated";
+  if (item.due) return "Due";
+  return "No due";
+}
+
+function onBoard(item: StoredItem, now: Clock): boolean {
+  if (OWED.has(item.status)) return true;
+  return item.status === "Done" && item.finished !== "" && weekStart(item.finished) === weekStart(now.date);
+}
+
+function boardOf(items: StoredItem[], now: Clock): Board {
+  const lanes: BoardLane[] = ["Escalated", "Due", "No due"];
+  const visible = items.filter((item) => onBoard(item, now));
+  return {
+    lanes: lanes.map((name) => ({
+      name,
+      columns: PIPELINE.map((state) => ({
+        state,
+        cards: visible
+          .filter((item) => laneOf(item) === name && item.status === state)
+          .sort((a, b) => {
+            if (a.due && b.due && a.due !== b.due) return a.due < b.due ? -1 : 1;
+            return a.created - b.created;
+          })
+          .map((item) => ({
+            id: item.id,
+            kind: item.kind,
+            title: item.title,
+            due: dueLabel(item.due, now),
+            escalated: item.escalated,
+          })),
+      })),
+    })),
+  };
+}
+
 function owed(items: StoredItem[]): StoredItem[] {
   return items.filter((item) => OWED.has(item.status)).sort((a, b) => {
     if (a.escalated !== b.escalated) return a.escalated ? -1 : 1;
@@ -349,6 +394,9 @@ export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; 
       meeting.category = category;
       input.saveMeeting?.(meeting);
       return { ok: true };
+    },
+    board(): Board {
+      return boardOf(items, input.now);
     },
     list(): OwedRow[] {
       return owed(items).map((item) => ({

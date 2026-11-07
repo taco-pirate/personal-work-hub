@@ -557,6 +557,58 @@ function task(title: string): string {
   return `---\nkind: Task\ntitle: ${title}\nstatus: Drafted\ndue: \nescalated: false\ncreated: 1\nsource: x\nfrom: Someone\noutlook: https://outlook.office365.com/owa/?ItemID=x\naction: \n---\nBody\n`;
 }
 
+describe("owed board", () => {
+  const titles = (lane: string, state: string) => {
+    const column = openHub({ demo: demo(), chosen: null, now: NOW }).board().lanes
+      .find((item) => item.name === lane)?.columns.find((item) => item.state === state);
+    return column?.cards.map((card) => card.title) ?? [];
+  };
+
+  it("places owed work in Escalated, Due, and No due, and keeps this week's Done", () => {
+    const board = openHub({ demo: demo(), chosen: null, now: NOW }).board();
+
+    expect(board.lanes.map((lane) => lane.name)).toEqual(["Escalated", "Due", "No due"]);
+    expect(board.lanes[0].columns.map((column) => column.state)).toEqual(["Drafted", "In Progress", "Blocked", "Ready", "Done"]);
+    expect(titles("Escalated", "Drafted")).toEqual(["Reply with notes on the Q4 deck"]);
+    expect(titles("Due", "Ready")).toEqual(["Confirm Thursday's 1:1 still works"]);
+    expect(titles("Due", "Blocked")).toEqual(["Get a badge reader for the lab"]);
+    expect(titles("Due", "In Progress")).toEqual(["Share the Q3 readout", "Complete security training"]);
+    expect(titles("Due", "Drafted")).toEqual(["Attach the Q3 charts"]);
+    expect(titles("Due", "Done")).toEqual(["Sent the on-call roster"]);
+    expect(titles("No due", "Drafted")).toEqual(["Send facilities the badge form"]);
+    expect(board.lanes.flatMap((lane) => lane.columns.flatMap((column) => column.cards.map((card) => card.title)))).not.toEqual(
+      expect.arrayContaining(["Last week's status note", "Print the lobby poster", "Renew the vendor certificate"]),
+    );
+    expect(board.lanes[0].columns[0].cards[0]).toEqual({
+      id: "deck",
+      kind: "Reply",
+      title: "Reply with notes on the Q4 deck",
+      due: "Thu 5:00pm",
+      escalated: true,
+    });
+  });
+
+  it("sets a column from a move, refuses a placeholder, and leaves the lane to Escalated and Due", () => {
+    const hub = openHub({ demo: demo(), chosen: null, now: NOW });
+
+    expect(hub.move("Task", "slides", "In Progress")).toEqual({ ok: true });
+    expect(titlesFrom(hub, "Due", "In Progress")).toEqual(["Share the Q3 readout", "Complete security training", "Attach the Q3 charts"]);
+    expect(titlesFrom(hub, "Due", "Drafted")).toEqual([]);
+
+    expect(hub.move("Reply", "deck", "Ready")).toEqual({ ok: false, reason: "placeholder" });
+    expect(titlesFrom(hub, "Escalated", "Drafted")).toEqual(["Reply with notes on the Q4 deck"]);
+
+    expect(hub.move("Reply", "deck", "In Progress")).toEqual({ ok: true });
+    expect(titlesFrom(hub, "Escalated", "In Progress")).toEqual(["Reply with notes on the Q4 deck"]);
+    expect(titlesFrom(hub, "Due", "In Progress")).not.toContain("Reply with notes on the Q4 deck");
+  });
+});
+
+function titlesFrom(hub: ReturnType<typeof openHub>, lane: string, state: string) {
+  const column = hub.board().lanes.find((item) => item.name === lane)?.columns.find((item) => item.state === state);
+  return column?.cards.map((card) => card.title) ?? [];
+}
+
 function tempFolder(name: string, files: Record<string, string> = {}, directories = ["replies", "tasks", "meetings"]) {
   const root = mkdtempSync(join(tmpdir(), "hub-"));
   const folder = join(root, name);

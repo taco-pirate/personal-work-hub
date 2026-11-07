@@ -1,7 +1,8 @@
-import { useLayoutEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useLayoutEffect, useRef, useState } from "react";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { MetricCard } from "@/components/arc/metric-card/metric-card";
-import type { Desk, OwedRow, Pipeline } from "./hub.ts";
+import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import type { BoardCard, Desk, OwedRow, Pipeline } from "./hub.ts";
 import type { RecordView } from "./hub.ts";
 import { toggleTheme } from "./theme.ts";
 import { currentHub, subscribe } from "./workspace.ts";
@@ -151,13 +152,83 @@ function RecordBody({ record, onBack, onChange }: { record: RecordView; onBack: 
 }
 
 export function OwedPage() {
-  const rows = useHub().list();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const mode = location.pathname.endsWith("/board") ? "board" : "list";
   return <div className="page">
-    <header><h1>Owed</h1></header>
-    <div className="rows">
-      {rows.map((row) => <OwedRowLink key={`${row.kind}-${row.id}`} row={row} />)}
-    </div>
+    <header className="owed-head">
+      <h1>Owed</h1>
+      <SegmentedControl label="Owed view" value={mode} onValueChange={(value) => navigate(value === "board" ? "/owed/board" : "/owed")} options={[{ value: "list", label: "List" }, { value: "board", label: "Board" }]} />
+    </header>
+    {mode === "board" ? <OwedBoard /> : <OwedList />}
   </div>;
+}
+
+function OwedList() {
+  const rows = useHub().list();
+  return <div className="rows">
+    {rows.map((row) => <OwedRowLink key={`${row.kind}-${row.id}`} row={row} />)}
+  </div>;
+}
+
+function OwedBoard() {
+  const [revision, setRevision] = useState(0);
+  const [note, setNote] = useState("");
+  const board = useHub().board();
+  void revision;
+  const place = (card: { kind: "Reply" | "Task"; id: string }, state: Pipeline) => {
+    const result = currentHub().move(card.kind, card.id, state);
+    setNote(result.ok ? "" : "Replace the placeholder before this can become Ready or Done.");
+    setRevision((value) => value + 1);
+  };
+  return <div className="board">
+    <div className="lane">
+      <span />
+      {board.lanes[0].columns.map((column) => <h2 key={column.state}>{column.state}</h2>)}
+    </div>
+    {board.lanes.map((lane) => <div className="lane" key={lane.name} data-lane={lane.name}>
+      <strong className="lane-name">{lane.name}</strong>
+      {lane.columns.map((column) => <div className="column" key={column.state} data-state={column.state}>
+        {column.cards.map((card) => <BoardCardLink key={card.id} card={card} onMove={place} />)}
+      </div>)}
+    </div>)}
+    {note ? <p className="note" role="status">{note}</p> : null}
+  </div>;
+}
+
+const COLUMNS = ["Drafted", "In Progress", "Blocked", "Ready", "Done"] as const;
+
+function columnAt(x: number, y: number): Pipeline | null {
+  const state = document.elementsFromPoint(x, y).map((node) => node.closest("[data-state]")?.getAttribute("data-state") ?? "").find((value) => (COLUMNS as readonly string[]).includes(value));
+  return state ? state as Pipeline : null;
+}
+
+function BoardCardLink({ card, onMove }: { card: BoardCard; onMove: (card: BoardCard, state: Pipeline) => void }) {
+  const gesture = useRef({ x: 0, y: 0, dragged: false });
+  return <Link className="card" draggable={false} to={recordPath(card.kind, card.id)} onPointerDown={(event) => {
+    if (event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    gesture.current.x = event.clientX;
+    gesture.current.y = event.clientY;
+    gesture.current.dragged = false;
+  }} onPointerMove={(event) => {
+    if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+    if (Math.hypot(event.clientX - gesture.current.x, event.clientY - gesture.current.y) > 6) gesture.current.dragged = true;
+  }} onPointerUp={(event) => {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    if (!gesture.current.dragged) return;
+    const state = columnAt(event.clientX, event.clientY);
+    if (!state) return;
+    event.preventDefault();
+    onMove(card, state);
+  }} onClick={(event) => {
+    if (!gesture.current.dragged) return;
+    event.preventDefault();
+    gesture.current.dragged = false;
+  }}>
+    <div className="kind">{card.kind}{card.escalated ? " · Escalated" : ""}</div>
+    <div className="card-top"><strong>{card.title}</strong><span className="due">{card.due}</span></div>
+  </Link>;
 }
 
 function OwedRowLink({ row }: { row: OwedRow }) {
