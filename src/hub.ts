@@ -45,11 +45,14 @@ export type CalendarBlock = {
   title: string;
   category: string;
   time: string;
+  start: number;
+  end: number;
 };
 
 export type Calendar = {
   counts: { ahead: number; meetingMinutes: number; usableMinutes: number; focusMinutes: number; uncategorized: number };
-  days: { day: string; blocks: CalendarBlock[] }[];
+  anchor: string;
+  days: { day: string; date: string; blocks: CalendarBlock[] }[];
 };
 
 export type MeetingView = {
@@ -309,18 +312,29 @@ function calendarOf(meetings: StoredMeeting[], now: Clock): Calendar {
           title: meeting.title,
           category: meeting.category,
           time: timeRange(meeting.allDay ? WORK_START : meeting.start, meeting.allDay ? WORK_END : meeting.end),
+          start: meeting.allDay ? WORK_START : meeting.start,
+          end: meeting.allDay ? WORK_END : meeting.end,
         },
       })),
       ...parts.map((part) => ({
         start: part.start,
-        block: { kind: "gap" as const, id: "", title: part.kind === "focus" ? "Focus" : "Usable", category: "", time: timeRange(part.start, part.end) },
+        block: {
+          kind: "gap" as const,
+          id: `gap-${date}-${part.start}`,
+          title: part.kind === "focus" ? "Focus" : "Usable",
+          category: part.kind === "focus" ? "Focus Time" : "",
+          time: timeRange(part.start, part.end),
+          start: part.start,
+          end: part.end,
+        },
       })),
     ].sort((a, b) => a.start - b.start || (a.block.kind === b.block.kind ? 0 : a.block.kind === "meeting" ? -1 : 1));
-    return { day: WEEKDAYS[weekdayIndex(date)], blocks: rows.map((row) => row.block) };
+    return { day: WEEKDAYS[weekdayIndex(date)], date, blocks: rows.map((row) => row.block) };
   });
   const usableMinutes = dates.reduce((total, date) => total + dayParts(date, meetings, now).reduce((sum, part) => sum + part.end - part.start, 0), 0);
   const focusMinutes = dates.reduce((total, date) => total + dayParts(date, meetings, now).reduce((sum, part) => sum + (part.kind === "focus" ? part.end - part.start : 0), 0), 0);
   return {
+    anchor: now.date,
     counts: {
       ahead: shown.length,
       meetingMinutes: shown.reduce((sum, meeting) => sum + (meeting.allDay ? WORK_END - WORK_START : meeting.end - meeting.start), 0),
@@ -341,7 +355,18 @@ function meetingView(meeting: StoredMeeting): MeetingView {
   return { id: meeting.id, title: meeting.title, category: meeting.category, time, outlook: meeting.outlook, categories: CATEGORIES };
 }
 
-export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; now: Clock; save?: (item: StoredItem) => void; saveMeeting?: (meeting: StoredMeeting) => void }) {
+function taskId(title: string, items: StoredItem[]): string {
+  const base = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "task";
+  let id = base;
+  let n = 2;
+  while (items.some((item) => item.id === id)) {
+    id = `${base}-${n}`;
+    n += 1;
+  }
+  return id;
+}
+
+export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; now: Clock; save?: (item: StoredItem) => void; saveMeeting?: (meeting: StoredMeeting) => void; saveSettings?: (name: string) => void }) {
   const chosen = input.chosen?.ready ? input.chosen : null;
   const snapshot = chosen ?? input.demo;
   const source = chosen ? "folder" : "demo";
@@ -351,6 +376,41 @@ export function openHub(input: { demo: HubSnapshot; chosen: HubSnapshot | null; 
   }
   return {
     source,
+    person(): string {
+      return snapshot.person;
+    },
+    rename(name: string): { ok: true } | { ok: false } {
+      if (!input.saveSettings) return { ok: false };
+      snapshot.person = name.trim();
+      input.saveSettings(snapshot.person);
+      return { ok: true };
+    },
+    createTask(title: string): { ok: true } | { ok: false } {
+      const name = title.trim();
+      if (!name || !input.save) return { ok: false };
+      const created = items.reduce((max, item) => Math.max(max, item.created), 0) + 1;
+      const item: StoredItem = {
+        id: taskId(name, items),
+        kind: "Task",
+        title: name,
+        status: "Drafted",
+        due: "",
+        escalated: false,
+        created,
+        finished: "",
+        returns: "",
+        parked: "",
+        source: "",
+        from: "",
+        outlook: "",
+        action: "",
+        body: "",
+        comments: [],
+      };
+      items.push(item);
+      input.save(item);
+      return { ok: true };
+    },
     desk(): Desk {
       const list = owed(items);
       const days = remainingDays(input.now);

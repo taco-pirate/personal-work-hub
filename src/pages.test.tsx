@@ -80,7 +80,7 @@ describe("Owed page", () => {
 describe("Owed board", () => {
   it("opens the board at its own address, with lanes, columns, and quiet cards", () => {
     const html = renderToStaticMarkup(
-      <MemoryRouter initialEntries={["/owed/board"]}>
+      <MemoryRouter initialEntries={["/actions/board"]}>
         <OwedPage />
       </MemoryRouter>,
     );

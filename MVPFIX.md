@@ -18,4 +18,4 @@ Notes for the last pass before this version is called complete.
 - While a folder is in use and the Name is empty, "Add your name" opens Configure.
 - New task is available only while a chosen folder is in use. On the sample week the action is absent.
 
-The prompt text for the three Configure steps is drafted from the product rules when this is built.
+The three Configure prompts say: create `PersonalWorkHub` and `replies`, `tasks`, and `meetings`; choose that folder in Configure; and schedule Cowork at 7:50, 11:50, and 3:50 on workdays, plus running it by hand. The Cowork prompt says to leave `SETTINGS.md` alone.

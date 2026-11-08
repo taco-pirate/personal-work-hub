@@ -64,6 +64,7 @@ export const guideFor = (choice: HubSnapshot | null, savedGone: boolean, blocked
 export type FolderWriters = {
   save?: (item: StoredItem) => void;
   saveMeeting?: (meeting: StoredMeeting) => void;
+  saveSettings?: (name: string) => void;
 };
 
 export type Session = {
@@ -103,6 +104,7 @@ export const openSession = (input: {
       now: snapshot?.ready ? input.now : input.demoNow,
       save: writers?.save,
       saveMeeting: writers?.saveMeeting,
+      saveSettings: writers?.saveSettings,
     });
   };
 

@@ -1,4 +1,4 @@
-import { loadStoredHandle, readDirectory, recallDirectory, saveStoredHandle, writeItemFile, writeMeetingFile, type DirectoryHandle } from "./browser-folder.ts";
+import { loadStoredHandle, readDirectory, recallDirectory, saveStoredHandle, writeItemFile, writeMeetingFile, writeSettingsFile, type DirectoryHandle } from "./browser-folder.ts";
 import { demoFolder } from "./demo.ts";
 import { localClock, openSession, type Guide, type Session } from "./guide.ts";
 import { SAMPLE_CLOCK } from "./hub.ts";
@@ -14,6 +14,7 @@ const writers = () => {
   return {
     save: (item: Parameters<typeof writeItemFile>[1]) => { void writeItemFile(current, item); },
     saveMeeting: (meeting: Parameters<typeof writeMeetingFile>[1]) => { void writeMeetingFile(current, meeting); },
+    saveSettings: (name: string) => { void writeSettingsFile(current, name); },
   };
 };
 
@@ -33,6 +34,8 @@ const publish = () => {
 export const currentGuide = (): Guide => session.guide;
 
 export const currentHub = () => session.hub;
+
+export const refresh = () => publish();
 
 export const subscribe = (listener: () => void) => {
   listeners.add(listener);

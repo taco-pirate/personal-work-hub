@@ -4,7 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement,
 import * as Dialog from "@radix-ui/react-dialog";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AnimatePresence, LayoutGroup, motion, useMotionValue, useReducedMotion, useTransform, type Transition } from "motion/react";
-import { Calendar, ChevronRight, House, List, X, type LucideIcon } from "lucide-react";
+import { Calendar, ChartColumn, ChevronRight, House, List, Settings, X, type LucideIcon } from "lucide-react";
 import { Tooltip } from "../../tooltip/tooltip";
 import { motionTokens } from "../../lib/motion-tokens";
 import styles from "./sidebar-rail.module.css";
@@ -25,10 +25,13 @@ type Entry = { id: string; label: string; icon?: LucideIcon; count?: number; chi
 const sections: { id: string; heading?: string; items: Entry[] }[] = [
   { id: "main", items: [
     { id: "home", label: "Home", icon: House },
-    { id: "owed", label: "Owed", icon: List },
+    { id: "actions", label: "Actions", icon: List },
     { id: "calendar", label: "Calendar", icon: Calendar },
+    { id: "metrics", label: "Metrics", icon: ChartColumn },
   ] },
 ];
+
+const configure: Entry = { id: "configure", label: "Configure", icon: Settings };
 
 
 const curve = (points: readonly number[]) => [...points] as [number, number, number, number];
@@ -111,13 +114,18 @@ function Navigation({ variant, baseId, collapsed, active, open, reduce, onSelect
           </ul>
         </div>;
     })}
+    <div className={styles.footer}>
+      <ul className={styles.list} role="list">
+        <li><NavRow entry={configure} current={active === configure.id} lit={active === configure.id} onClick={() => onSelect(configure.id)} {...shared} /></li>
+      </ul>
+    </div>
   </motion.nav>;
 }
 
-function Brand({ collapsed, reduce, note }: { collapsed: boolean; reduce: boolean; note: string }) {
+function Brand({ collapsed, reduce, note, noteHref }: { collapsed: boolean; reduce: boolean; note: string; noteHref?: string }) {
   return <div className={styles.brand}>
     <span className={styles.mark} data-logo="" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3.5 5.5 19.5 12 15.6z" fill="currentColor" /><path d="M12 3.5l6.5 16-6.5-3.9z" fill="currentColor" opacity=".55" /></svg></span>
-    <motion.span className={styles.stack} initial={false} animate={{ opacity: collapsed ? 0 : 1, x: collapsed ? -6 : 0 }} transition={labelTiming(collapsed, reduce)}><strong>Work hub</strong><span>{note}</span></motion.span>
+    <motion.span className={styles.stack} initial={false} animate={{ opacity: collapsed ? 0 : 1, x: collapsed ? -6 : 0 }} transition={labelTiming(collapsed, reduce)}><strong>Work hub</strong>{noteHref ? <a className={styles.note} href={noteHref}>{note}</a> : <span>{note}</span>}</motion.span>
   </div>;
 }
 
@@ -129,7 +137,7 @@ function PanelGlyph({ collapsed, reduce }: { collapsed: boolean; reduce: boolean
   </svg>;
 }
 
-export function SidebarRail({ active, onNavigate, note = "Sample week", children }: { active: string; onNavigate: (id: string) => void; note?: string; children: ReactNode }) {
+export function SidebarRail({ active, onNavigate, note = "Demo Week", noteHref, children }: { active: string; onNavigate: (id: string) => void; note?: string; noteHref?: string; children: ReactNode }) {
   const baseId = useId();
   const prefersReduced = !!useReducedMotion();
   // The first measurement settles the layout before paint, so it never animates.
@@ -236,7 +244,7 @@ export function SidebarRail({ active, onNavigate, note = "Sample week", children
         {/* The slot holds the sidebar's place in the row. On a floating shell it keeps the rail's width and the panel opens over the page. */}
         <motion.div className={styles.slot} initial={false} animate={{ width: floating || collapsed ? RAIL : FULL }} transition={reduce ? instant : motionTokens.spring.smooth}>
           <motion.div id={sidebarId} className={styles.sidebar} initial={false} animate={{ width: collapsed ? RAIL : FULL }} transition={reduce ? instant : motionTokens.spring.smooth} data-collapsed={collapsed || undefined} data-floating={overlaid || undefined}>
-            <Brand collapsed={collapsed} reduce={reduce} note={note} />
+            <Brand collapsed={collapsed} reduce={reduce} note={note} noteHref={noteHref} />
             <Navigation variant="side" baseId={baseId} collapsed={collapsed} active={active} open={open} reduce={reduce} onSelect={id => select(id)} onGroup={id => toggleGroup(id)} />
           </motion.div>
         </motion.div>
@@ -267,7 +275,7 @@ export function SidebarRail({ active, onNavigate, note = "Sample week", children
                   onDragEnd={(_, info) => { sheet.current?.removeAttribute("data-dragging"); window.setTimeout(() => { dragging.current = false; }, 0); if (info.offset.x < -72 || info.velocity.x < -480) setSheetOpen(false); }}>
                   <Dialog.Title className={styles.srOnly}>Navigation</Dialog.Title>
                   <div className={styles.sheetHead}>
-                    <Brand collapsed={false} reduce={reduce} note={note} />
+                    <Brand collapsed={false} reduce={reduce} note={note} noteHref={noteHref} />
                     <Dialog.Close asChild><button type="button" className={styles.iconButton} aria-label="Close navigation"><X size={18} strokeWidth={1.75} aria-hidden="true" /></button></Dialog.Close>
                   </div>
                   <Navigation variant="sheet" baseId={baseId} collapsed={false} active={active} open={open} reduce={reduce} onSelect={id => select(id, true)} onGroup={id => toggleGroup(id, true)} />

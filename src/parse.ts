@@ -36,6 +36,7 @@ export type StoredMeeting = {
 export type HubSnapshot = {
   ready: boolean;
   name: string;
+  person: string;
   directories: string[];
   items: StoredItem[];
   meetings: StoredMeeting[];
@@ -46,13 +47,19 @@ export type FolderFile = { directory: string; id: string; text: string };
 const REQUIRED = ["replies", "tasks", "meetings"];
 
 export function snapshotFromFiles(name: string, directories: string[], files: FolderFile[]): HubSnapshot {
+  const settings = files.find((file) => file.directory === "" && file.id === "SETTINGS");
   return {
     ready: name === "PersonalWorkHub" && REQUIRED.every((dir) => directories.includes(dir)),
     name,
+    person: settings ? fieldsOf(settings.text).name ?? "" : "",
     directories,
     items: files.flatMap((file) => itemFrom(file)),
     meetings: files.flatMap((file) => meetingFrom(file)),
   };
+}
+
+export function renderSettings(name: string): string {
+  return `---\nname: ${name}\n---\n`;
 }
 
 function fieldsOf(text: string): Record<string, string> {
