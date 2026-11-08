@@ -12,7 +12,6 @@ import { MetricCard } from "@/components/arc/metric-card/metric-card";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
 import type { Desk, OwedRow, Pipeline } from "./hub.ts";
 import type { RecordView } from "./hub.ts";
-import { toggleTheme } from "./theme.ts";
 import { currentGuide, currentHub, pickChosenFolder, refresh, subscribe } from "./workspace.ts";
 
 function useHub() {
@@ -39,10 +38,6 @@ function usableParts(minutes: number): { value: number; suffix: string } {
   if (hours && rest) return { value: hours, suffix: `h ${rest}m` };
   if (hours) return { value: hours, suffix: "h" };
   return { value: rest, suffix: "m" };
-}
-
-export function Appearance() {
-  return <button className="theme" type="button" onClick={toggleTheme}>Appearance</button>;
 }
 
 function HubHeader({ title }: { title: string }) {

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router-dom";
 import { paintTheme } from "./theme.ts";
 import App from "./App.tsx";
+import { LabPage } from "./lab.tsx";
 import { CalendarPage, ConfigurePage, DeskPage, MeetingPage, MetricsPage, OwedPage, RecordPage } from "./pages.tsx";
 import "@fontsource-variable/geist";
 import "@fontsource-variable/inter";
@@ -24,6 +25,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="calendar" element={<CalendarPage />} />
           <Route path="metrics" element={<MetricsPage />} />
           <Route path="configure" element={<ConfigurePage />} />
+          <Route path="theme" element={<LabPage />} />
           <Route path="meetings/:id" element={<MeetingPage />} />
           <Route path="replies/:id" element={<RecordPage kind="Reply" />} />
           <Route path="tasks/:id" element={<RecordPage kind="Task" />} />
