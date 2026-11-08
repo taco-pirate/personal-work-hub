@@ -157,7 +157,7 @@ describe("choosing the folder", () => {
   it("does not search for OneDrive when the sample is gone", () => {
     let called = false;
     const session = openSession({
-      demo: { ready: false, name: "DEMO-PersonalWorkHub", directories: [], items: [], meetings: [] },
+      demo: { ready: false, name: "DEMO-PersonalWorkHub", person: "", directories: [], items: [], meetings: [] },
       now: NOW,
       demoNow: NOW,
       saved: null,

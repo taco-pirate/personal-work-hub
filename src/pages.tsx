@@ -1,12 +1,16 @@
 import { useLayoutEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { PageHeader } from "@/components/arc/blocks/page-header/page-header";
 import { KanbanBoard, type KanbanCard } from "@/components/arc/blocks/kanban-board/kanban-board";
+import { WeekCalendar, type CalendarEvent, type CalendarSource } from "@/components/arc/blocks/week-calendar/week-calendar";
+import InstallSnippet from "@/components/arc/install-snippet/install-snippet";
 import { MetricCard } from "@/components/arc/metric-card/metric-card";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
+import { FolderSteps } from "./folder-walk.tsx";
 import type { Desk, OwedRow, Pipeline } from "./hub.ts";
 import type { RecordView } from "./hub.ts";
 import { toggleTheme } from "./theme.ts";
-import { currentHub, subscribe } from "./workspace.ts";
+import { currentGuide, currentHub, pickChosenFolder, refresh, subscribe } from "./workspace.ts";
 
 function useHub() {
   const [, setRevision] = useState(0);
@@ -38,6 +42,26 @@ export function Appearance() {
   return <button className="theme" type="button" onClick={toggleTheme}>Appearance</button>;
 }
 
+function HubHeader({ title }: { title: string }) {
+  const hub = useHub();
+  const [open, setOpen] = useState(false);
+  const [task, setTask] = useState("");
+  const canCreate = hub.source === "folder";
+  const create = () => {
+    if (!currentHub().createTask(task).ok) return;
+    setTask("");
+    setOpen(false);
+    refresh();
+  };
+  return <>
+    <PageHeader title={title} action={canCreate ? "New task" : undefined} onAction={canCreate ? () => setOpen(true) : undefined} />
+    {open ? <form className="task-form" onSubmit={(event) => { event.preventDefault(); create(); }}>
+      <label>Title <input value={task} onChange={(event) => setTask(event.target.value)} /></label>
+      <button type="submit">Create task</button>
+    </form> : null}
+  </>;
+}
+
 export function DeskPage() {
   const hub = useHub();
   const desk = hub.desk();
@@ -50,7 +74,7 @@ export function DeskPage() {
     ["Usable", usable.value, usable.suffix],
   ] as const;
   return <div className="page">
-    <header><h1>{desk.heading}</h1><p className="quiet">{hub.source === "demo" ? "Sample week" : "PersonalWorkHub"}</p></header>
+    <HubHeader title={desk.heading} />
     <div className="metrics">
       {counts.map(([label, value, suffix]) => <MetricCard key={label} label={label} value={value} suffix={suffix || undefined} context="This workweek" />)}
     </div>
@@ -157,10 +181,10 @@ export function OwedPage() {
   const navigate = useNavigate();
   const mode = location.pathname.endsWith("/board") ? "board" : "list";
   return <div className="page">
-    <header className="owed-head">
-      <h1>Owed</h1>
-      <SegmentedControl label="Owed view" value={mode} onValueChange={(value) => navigate(value === "board" ? "/owed/board" : "/owed")} options={[{ value: "list", label: "List" }, { value: "board", label: "Board" }]} />
-    </header>
+    <div className="owed-head">
+      <HubHeader title="Actions" />
+      <SegmentedControl label="Actions view" value={mode} onValueChange={(value) => navigate(value === "board" ? "/actions/board" : "/actions")} options={[{ value: "list", label: "List" }, { value: "board", label: "Board" }]} />
+    </div>
     {mode === "board" ? <OwedBoard /> : <OwedList />}
   </div>;
 }
@@ -216,34 +240,65 @@ function OwedRowLink({ row }: { row: OwedRow }) {
   </Link>;
 }
 
+const WEEK_CALENDARS: CalendarSource[] = [
+  { id: "meeting", name: "Meeting", color: "violet" },
+  { id: "focus", name: "Focus", color: "green" },
+  { id: "usable", name: "Usable", color: "teal" },
+];
+
+function wallTime(date: string, minutes: number): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day, Math.floor(minutes / 60), minutes % 60));
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(utc);
+  const read = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const asUtc = Date.UTC(read("year"), read("month") - 1, read("day"), read("hour"), read("minute"));
+  return new Date(utc.getTime() - (asUtc - utc.getTime()));
+}
+
 export function CalendarPage() {
+  const navigate = useNavigate();
   const calendar = useHub().calendar();
   const counts = [
     ["Meetings", calendar.counts.ahead, ""],
     ["Hours", ...parts(calendar.counts.meetingMinutes)],
     ["Usable", ...parts(calendar.counts.usableMinutes)],
-    ["Focus", ...parts(calendar.counts.focusMinutes)],
+    ["Focus Time", ...parts(calendar.counts.focusMinutes)],
     ["Uncategorized", calendar.counts.uncategorized, ""],
   ] as const;
+  const events: CalendarEvent[] = calendar.days.flatMap((day) => day.blocks.map((block) => ({
+    id: block.id,
+    title: block.title,
+    start: wallTime(day.date, block.start),
+    end: wallTime(day.date, block.end),
+    calendarId: block.category === "Focus Time" ? "focus" : block.kind === "meeting" ? "meeting" : "usable",
+    href: block.kind === "meeting" ? `/meetings/${block.id}` : undefined,
+  })));
   return <div className="page">
-    <header><h1>Calendar</h1></header>
+    <HubHeader title="Calendar" />
     <div className="metrics">
       {counts.map(([label, value, suffix]) => <MetricCard key={label} label={label} value={value} suffix={suffix || undefined} context="This workweek" />)}
     </div>
     <div className="week" data-days={calendar.days.length}>
-      {calendar.days.map((day) => <section key={day.day}>
-        <h2>{day.day}</h2>
-        {day.blocks.map((block) => block.kind === "meeting"
-          ? <Link className="block" key={block.id} to={`/meetings/${block.id}`}>
-            <span className="due">{block.time}</span>
-            <strong>{block.title}</strong>
-            <span className="kind">{block.category}</span>
-          </Link>
-          : <div className="block" key={`${block.title}-${block.time}`}>
-            <span>{block.title}</span>
-            <span className="due">{block.time}</span>
-          </div>)}
-      </section>)}
+      <WeekCalendar
+        events={events}
+        calendars={WEEK_CALENDARS}
+        defaultDate={wallTime(calendar.anchor, 12 * 60)}
+        defaultView="workweek"
+        weekStartsOn={1}
+        startHour={8}
+        endHour={17}
+        timeZone="America/New_York"
+        readOnly
+        onOpen={(event) => { if (event.href) navigate(event.href); }}
+      />
     </div>
   </div>;
 }
@@ -271,5 +326,79 @@ export function MeetingPage() {
       {meeting.categories.map((category) => <button key={category} type="button" aria-pressed={category === meeting.category} disabled={category === meeting.category} onClick={() => { currentHub().categorize(meeting.id, category); setRevision((value) => value + 1); }}>{category}</button>)}
     </div>
   </article>;
+}
+
+export function MetricsPage() {
+  const hub = useHub();
+  const desk = hub.desk();
+  const calendar = hub.calendar();
+  const usable = usableParts(desk.counts.usableMinutes);
+  const meetings = usableParts(calendar.counts.meetingMinutes);
+  const focus = usableParts(calendar.counts.focusMinutes);
+  const counts = [
+    ["Owed", desk.counts.owed, ""],
+    ["Escalated", desk.counts.escalated, ""],
+    ["Replies", desk.counts.replies, ""],
+    ["Tasks", desk.counts.tasks, ""],
+    ["Usable time left", usable.value, usable.suffix],
+    ["Meetings still ahead", calendar.counts.ahead, ""],
+    ["Hours in those meetings", meetings.value, meetings.suffix],
+    ["Focus Time left", focus.value, focus.suffix],
+    ["Uncategorized", calendar.counts.uncategorized, ""],
+  ] as const;
+  return <div className="page">
+    <HubHeader title="Metrics" />
+    <div className="metrics">
+      {counts.map(([label, value, suffix]) => <MetricCard key={label} label={label} value={value} suffix={suffix || undefined} context="This workweek" />)}
+    </div>
+  </div>;
+}
+
+const SETUP_PROMPTS = [
+  {
+    title: "Create the folder",
+    description: "PersonalWorkHub, then replies, tasks, and meetings",
+    code: "Create a folder named PersonalWorkHub at the root of my OneDrive. Inside it, create three folders named replies, tasks, and meetings. Leave them empty. Do not create SETTINGS.md.",
+  },
+  {
+    title: "Choose the folder",
+    description: "Point Personal Work Hub at that folder",
+    code: "The Personal Work Hub keeps its files in the PersonalWorkHub folder on OneDrive. In the app, open Configure and choose that folder. The folder must contain replies, tasks, and meetings. If one is missing, create it and choose the folder again. The app cannot see my directory by itself.",
+  },
+  {
+    title: "Schedule Cowork",
+    description: "7:50, 11:50, and 3:50 on workdays, and whenever I run it",
+    code: [
+      "Schedule this work for 7:50, 11:50, and 3:50 in this computer's time zone on Monday through Friday. Also leave a way to run it whenever I ask.",
+      "",
+      "When you run, read new mail and the calendar. File each answer I owe as one Reply in PersonalWorkHub/replies. File each deed that is not an answer as one Task in PersonalWorkHub/tasks. File every Meeting in PersonalWorkHub/meetings. New items start as Drafted. Use a visible placeholder for any fact I have not decided. Do not invent a date, a promise, or a fact. Do not overwrite a Reply I have edited. Do not delete files. Leave SETTINGS.md alone.",
+      "",
+      "Give every Meeting exactly one category: Operating Review, Focus Time, 1:1, Working Session, Projects, Leadership, Operational Support, or Personal. If you cannot tell, use Uncategorized.",
+    ].join("\n"),
+  },
+];
+
+export function ConfigurePage() {
+  const hub = useHub();
+  const person = hub.person();
+  const [name, setName] = useState(person);
+  const [seen, setSeen] = useState(person);
+  if (person !== seen) {
+    setSeen(person);
+    setName(person);
+  }
+  const save = () => {
+    if (!currentHub().rename(name).ok) return;
+    refresh();
+  };
+  return <div className="page">
+    <HubHeader title="Configure" />
+    <InstallSnippet title="Set up your hub" description="Three prompts to copy." version={null} prompts={SETUP_PROMPTS} />
+    {hub.source === "folder" ? <form className="name-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
+      <label>Name <input value={name} onChange={(event) => setName(event.target.value)} /></label>
+      <button type="submit">Save name</button>
+    </form> : null}
+    <FolderSteps guide={currentGuide()} onSelect={() => { void pickChosenFolder(); }} />
+  </div>;
 }
 

@@ -1,4 +1,4 @@
-import { renderItem, renderMeeting, snapshotFromFiles, type FolderFile, type HubSnapshot, type StoredItem, type StoredMeeting } from "./parse.ts";
+import { renderItem, renderMeeting, renderSettings, snapshotFromFiles, type FolderFile, type HubSnapshot, type StoredItem, type StoredMeeting } from "./parse.ts";
 
 export type DirectoryEntry = {
   kind: "file" | "directory";
@@ -11,7 +11,7 @@ export type DirectoryHandle = {
   name: string;
   values: () => AsyncIterable<DirectoryEntry>;
   getDirectoryHandle?: (name: string) => Promise<DirectoryHandle>;
-  getFileHandle?: (name: string) => Promise<{ createWritable: () => Promise<{ write: (data: string) => Promise<void>; close: () => Promise<void> }> }>;
+  getFileHandle?: (name: string, options?: { create?: boolean }) => Promise<{ createWritable: () => Promise<{ write: (data: string) => Promise<void>; close: () => Promise<void> }> }>;
   requestPermission?: (options: { mode: "readwrite" }) => Promise<"granted" | "denied" | "prompt">;
 };
 
@@ -23,6 +23,10 @@ export async function readDirectory(handle: DirectoryHandle): Promise<HubSnapsho
   const directories: string[] = [];
   const files: FolderFile[] = [];
   for await (const entry of handle.values()) {
+    if (entry.kind === "file" && entry.name === "SETTINGS.md" && entry.getFile) {
+      files.push({ directory: "", id: "SETTINGS", text: await (await entry.getFile()).text() });
+      continue;
+    }
     if (entry.kind !== "directory" || !entry.values) continue;
     directories.push(entry.name);
     for await (const file of entry.values()) {
@@ -41,11 +45,19 @@ export async function writeMeetingFile(handle: DirectoryHandle, meeting: StoredM
   await writeText(handle, "meetings", meeting.id, renderMeeting(meeting));
 }
 
+export async function writeSettingsFile(handle: DirectoryHandle, name: string) {
+  if (!handle.getFileHandle) return;
+  const file = await handle.getFileHandle("SETTINGS.md", { create: true });
+  const writable = await file.createWritable();
+  await writable.write(renderSettings(name));
+  await writable.close();
+}
+
 async function writeText(handle: DirectoryHandle, directory: string, id: string, text: string) {
   if (!handle.getDirectoryHandle) return;
   const dir = await handle.getDirectoryHandle(directory);
   if (!dir.getFileHandle) return;
-  const file = await dir.getFileHandle(`${id}.md`);
+  const file = await dir.getFileHandle(`${id}.md`, { create: true });
   const writable = await file.createWritable();
   await writable.write(text);
   await writable.close();

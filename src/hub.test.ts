@@ -2,7 +2,8 @@ import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadFolder, saveItem, saveMeeting } from "./folder.ts";
+import { loadFolder, saveItem, saveMeeting, saveSettings } from "./folder.ts";
+import { renderSettings } from "./parse.ts";
 import { openHub } from "./hub.ts";
 
 const NOW = { date: "2026-11-04", minutes: 10 * 60 + 15 };
@@ -428,14 +429,18 @@ describe("calendar", () => {
       title: "Focus hold",
       category: "Focus Time",
       time: "9:00am–10:30am",
+      start: 540,
+      end: 630,
     });
-    expect(calendar.days[0].blocks[1]).toEqual({ kind: "gap", id: "", title: "Usable", category: "", time: "10:30am–11:00am" });
+    expect(calendar.days[0].blocks[1]).toEqual({ kind: "gap", id: "gap-2026-11-04-630", title: "Usable", category: "", time: "10:30am–11:00am", start: 630, end: 660 });
     expect(calendar.days[1].blocks[6]).toEqual({
       kind: "meeting",
       id: "t-free",
       title: "Hold, unlabeled",
       category: "Uncategorized",
       time: "2:15pm–3:00pm",
+      start: 855,
+      end: 900,
     });
     expect(calendar.days[1].blocks[7].time).toBe("2:15pm–3:00pm");
     const titles = calendar.days.flatMap((day) => day.blocks.map((block) => block.title));
@@ -521,6 +526,7 @@ function openWritable(folder: string, now: { date: string; minutes: number }) {
     now,
     save: (stored) => saveItem(folder, stored),
     saveMeeting: (stored) => saveMeeting(folder, stored),
+    saveSettings: (name) => saveSettings(folder, renderSettings(name)),
   });
 }
 
@@ -619,3 +625,28 @@ function tempFolder(name: string, files: Record<string, string> = {}, directorie
   }
   return loadFolder(folder);
 }
+
+describe("name and a new task", () => {
+  it("keeps the Name in SETTINGS.md and leaves the file when the Name is cleared", () => {
+    const folder = writeHub({ "SETTINGS.md": "---\nname: Ada\n---\n" });
+    const hub = openWritable(folder, NOW);
+    expect(hub.person()).toBe("Ada");
+    expect(hub.rename("").ok).toBe(true);
+    expect(readFileSync(join(folder, "SETTINGS.md"), "utf8")).toContain("name:");
+    expect(loadFolder(folder).person).toBe("");
+    expect(openWritable(folder, NOW).rename("Bea").ok).toBe(true);
+    expect(loadFolder(folder).person).toBe("Bea");
+    expect(openHub({ demo: demo(), chosen: null, now: NOW }).rename("Ada").ok).toBe(false);
+  });
+
+  it("creates one Drafted task from a title, with no Due, Escalated, or Source", () => {
+    const folder = writeHub({});
+    const hub = openWritable(folder, NOW);
+    expect(hub.createTask("  Order the lab cables  ").ok).toBe(true);
+    const stored = loadFolder(folder).items.find((entry) => entry.title === "Order the lab cables");
+    expect(stored).toMatchObject({ kind: "Task", status: "Drafted", due: "", escalated: false, source: "" });
+    const row = openWritable(folder, NOW).list().find((entry) => entry.title === "Order the lab cables");
+    expect(row).toMatchObject({ kind: "Task", state: "Drafted", due: "No due date", escalated: false });
+    expect(openHub({ demo: demo(), chosen: null, now: NOW }).createTask("Nope").ok).toBe(false);
+  });
+});

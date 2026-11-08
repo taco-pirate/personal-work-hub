@@ -34,8 +34,11 @@ describe("folder walkthrough", () => {
     );
 
     expect(html).toContain("Home");
-    expect(html).toContain("Owed");
+    expect(html).toContain("Actions");
     expect(html).toContain("Calendar");
+    expect(html).toContain("Metrics");
+    expect(html).toContain("Configure");
+    expect(html).toContain("Demo Week");
     expect(html).not.toContain("Change folder");
     expect(html).not.toContain("Switch folder");
   });

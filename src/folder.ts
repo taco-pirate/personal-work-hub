@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { existsSync } from "node:fs";
 import { renderItem, renderMeeting, snapshotFromFiles, type FolderFile, type HubSnapshot, type StoredItem, type StoredMeeting } from "./parse.ts";
 
 export function loadFolder(path: string): HubSnapshot {
@@ -11,6 +12,10 @@ export function loadFolder(path: string): HubSnapshot {
     entries = readdirSync(path);
   } catch {
     return snapshotFromFiles(name, directories, files);
+  }
+  const settings = join(path, "SETTINGS.md");
+  if (existsSync(settings) && statSync(settings).isFile()) {
+    files.push({ directory: "", id: "SETTINGS", text: readFileSync(settings, "utf8") });
   }
   for (const entry of entries) {
     const full = join(path, entry);
@@ -31,4 +36,8 @@ export function saveItem(folder: string, item: StoredItem) {
 
 export function saveMeeting(folder: string, meeting: StoredMeeting) {
   writeFileSync(join(folder, "meetings", `${meeting.id}.md`), renderMeeting(meeting));
+}
+
+export function saveSettings(folder: string, text: string) {
+  writeFileSync(join(folder, "SETTINGS.md"), text);
 }
