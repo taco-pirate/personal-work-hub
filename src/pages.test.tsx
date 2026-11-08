@@ -136,14 +136,14 @@ describe("Calendar page", () => {
 });
 
 describe("Configure page", () => {
-  it("wraps each prompt in a step that can open, and keeps the folder choice with that step", () => {
+  it("shows the three setup steps in the install snippet, with the folder choice on its step", () => {
     const html = renderToStaticMarkup(
       <MemoryRouter>
         <ConfigurePage />
       </MemoryRouter>,
     );
 
-    expect(html.indexOf("Folder")).toBeLessThan(html.indexOf(">Name<"));
+    expect(html.indexOf("Set up your hub")).toBeLessThan(html.indexOf(">Name<"));
     expect(html).toContain("Create the folder");
     expect(html).toContain("Choose the folder");
     expect(html).toContain("Schedule Cowork");

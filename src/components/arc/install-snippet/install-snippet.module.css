@@ -87,6 +87,9 @@
 .copy { flex: none; }
 
 .codeBody { display: grid; min-width: 0; }
+.promptBody { min-width: 0; padding: 12px 14px; }
+.promptBody p { margin: 0 0 0.75em; white-space: pre-wrap; overflow-wrap: anywhere; }
+.promptBody p:last-child { margin-bottom: 0; }
 .layers { min-width: 0; }
 .layer { min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; }
 .pre { margin: 0; padding: var(--is-pad-y) 14px; color: var(--foreground); font-family: var(--is-mono); font-size: 13px; line-height: var(--is-line); letter-spacing: 0; tab-size: 2; white-space: pre; }
