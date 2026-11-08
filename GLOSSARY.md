@@ -4,6 +4,12 @@ The private work of one person: what they owe, and what they will do next. A col
 
 ## Language
 
+### The person
+
+**Name**:
+The words this person chooses to show on their hub.
+_Avoid_: Username, account, AD name, mailbox
+
 ### Work owed
 
 **Reply**:

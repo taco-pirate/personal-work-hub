@@ -11,8 +11,11 @@ Notes for the last pass before this version is called complete.
 - The page header's New task creates one Task file. The user types the title. It is Drafted, with no Due, not Escalated, and no Source. It shows on the Desk and on Actions. A Reply still comes only from Cowork.
 - The Arc page header replaces the plain title on Home, Actions, Calendar, Metrics, and Configure. It keeps the page title and New task. The sample people, follow, share, archive, and tab counts come off.
 - Calendar uses the Arc week calendar for the remaining workweek. It shows Meetings and usable gaps. Dragging, resizing, creating, or deleting on that grid does not change a file and does not create an Outlook event. Choosing a category stays on the meeting's own page.
-- The app cannot read an AD account name. Configure offers a place to set the person's name.
+- The corner mark stays the icon already there. The note says Demo Week while the sample week is showing. Once a folder is in use, the note shows the Name saved on Configure. If that Name is empty, the note says "Add your name".
+- Configure has one field for the Name. The person can change it later. An empty save clears it. The app cannot read an AD account name.
+- The Name is kept in the chosen OneDrive folder. The file that holds it is still open.
+- New task is available only while a chosen folder is in use. On the sample week the action is absent.
 
 ## Open
 
-The corner note, where that name is kept, and whether New task is offered during the sample week are still open.
+Whether that store is one file named `SETTINGS.md` at the root of `PersonalWorkHub`, and whether "Add your name" opens Configure.
