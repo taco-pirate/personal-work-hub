@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Check, CircleAlert } from "lucide-react";
 import { Button } from "../button/button";
 import { CopyButton } from "../copy-button/copy-button";
+import { ExpandableText } from "../expandable-text/expandable-text";
 import { motionTokens } from "../lib/motion-tokens";
 import { installSnippetFrameworks, installSnippetPackageManagers } from "./install-snippet-data";
 import type { InstallSnippetFramework, InstallSnippetPackageManager } from "./install-snippet-data";
@@ -43,8 +44,8 @@ export interface InstallSnippetProps {
   onKeyGenerated?: (key: string) => void;
   /** Called after a snippet is copied, with the exact text that went to the clipboard. */
   onCopy?: (step: InstallSnippetStep, value: string) => void;
-  /** When set, the card is three copyable prompts and the SDK tabs stay hidden. */
-  prompts?: { title: string; description: string; code: string }[];
+  /** When set, the card is these numbered steps. The prompt wraps, and Read more opens the rest. */
+  prompts?: { title: string; description: string; code: string; file: string; action?: ReactNode }[];
   className?: string;
 }
 
@@ -209,6 +210,14 @@ function Tabs<T extends string>({ items, value, onChange, label, variant, panelI
   </div>;
 }
 
+function PromptText({ code }: { code: string }) {
+  return <div className={styles.promptBody}>
+    <ExpandableText lines={4} style={{ color: "var(--foreground)", fontFamily: "var(--is-mono)", fontSize: "13px", lineHeight: "20px" }}>
+      {code.split("\n\n").map((paragraph) => <p key={paragraph.slice(0, 40)}>{paragraph}</p>)}
+    </ExpandableText>
+  </div>;
+}
+
 function CodeBlock({ head, copyValue, copyLabel, onCopied, minLines, children }: { head: ReactNode; copyValue: string; copyLabel: string; onCopied: () => void; minLines: number; children: ReactNode }) {
   return <div className={styles.code}>
     <div className={styles.codeHead}>
@@ -351,10 +360,10 @@ export function InstallSnippet({
         </div>
       </header>
       <ol className={styles.steps}>
-        {prompts.map((prompt, index) => <Step key={prompt.title} n={index + 1} title={prompt.title} description={prompt.description} descriptionId={`prompt-${index}`} done={false}>
-          <CodeBlock copyValue={prompt.code} copyLabel={`Copy ${prompt.title}`} onCopied={() => onCopy?.("code", prompt.code)} minLines={1}
-            head={<span className={styles.file}>Prompt</span>}>
-            <CodeLines code={prompt.code} lang="code" numbered={false} placeholder="" fresh={false} />
+        {prompts.map((prompt, index) => <Step key={prompt.title} n={index + 1} title={prompt.title} description={prompt.description} descriptionId={`prompt-${index}`} done={false} action={prompt.action}>
+          <CodeBlock copyValue={prompt.code} copyLabel="Copy prompt" onCopied={() => onCopy?.("code", prompt.code)} minLines={3}
+            head={<span className={styles.file}>{prompt.file}</span>}>
+            <PromptText code={prompt.code} />
           </CodeBlock>
         </Step>)}
       </ol>
