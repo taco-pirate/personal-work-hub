@@ -55,6 +55,35 @@ h1, h2, h3 { font-family: var(--font-display); }
 .section { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border); }
 .section h2 { margin: 0 0 0.4rem; font-size: 12px; font-weight: 560; color: var(--text-secondary); }
 .topbar-actions { display: flex; justify-content: flex-end; }
+.lab { max-width: 46rem; }
+.lab-block { display: flex; flex-direction: column; align-items: stretch; gap: 0.75rem; min-width: 0; }
+.lab-block h2 { margin: 0; font-size: 1rem; font-weight: 500; }
+.lab-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; align-self: flex-start; }
+.lab-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+::view-transition-old(root),
+::view-transition-new(root) { animation-duration: 480ms; animation-timing-function: var(--ease-standard); }
+::view-transition-old(root) { animation-name: theme-out; }
+::view-transition-new(root) { animation-name: theme-reveal; }
+:root[data-theme-move="eclipse"]::view-transition-new(root) { animation-name: theme-eclipse; }
+:root[data-theme-move="split"]::view-transition-new(root) { animation-name: theme-split; }
+:root[data-theme-move="rise"]::view-transition-new(root) { animation-name: theme-rise; }
+@keyframes theme-out { to { opacity: 0; } }
+@keyframes theme-reveal {
+  from { clip-path: circle(0 at var(--x, 50%) var(--y, 0)); }
+  to { clip-path: circle(150vmax at var(--x, 50%) var(--y, 0)); }
+}
+@keyframes theme-eclipse {
+  from { clip-path: circle(0 at calc(100% - var(--x, 50%)) calc(100% - var(--y, 0))); }
+  to { clip-path: circle(150vmax at calc(100% - var(--x, 50%)) calc(100% - var(--y, 0))); }
+}
+@keyframes theme-split {
+  from { clip-path: inset(0 50% 0 50%); }
+  to { clip-path: inset(0); }
+}
+@keyframes theme-rise {
+  from { clip-path: inset(100% 0 0 0); }
+  to { clip-path: inset(0); }
+}
 .walk { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
 .walk ol { margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.35rem; }
 .walk p { margin: 0; }
@@ -67,7 +96,7 @@ h1, h2, h3 { font-family: var(--font-display); }
 .block strong { font-weight: 560; }
 .block:focus-visible { outline: 2px solid var(--foreground); outline-offset: 2px; }
 @media (max-width: 900px) {
-  .metrics, .split, .week { grid-template-columns: 1fr; }
+  .metrics, .split, .week, .lab-metrics { grid-template-columns: 1fr; }
   .row { grid-template-columns: 1fr 1fr; }
   .row-title { grid-column: 1 / -1; }
 }

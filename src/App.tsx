@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { SidebarRail } from "@/components/arc/blocks/sidebar-rail/sidebar-rail";
-import { Appearance } from "./pages.tsx";
+import { Appearance } from "./lab.tsx";
 import { currentHub, recallChosenFolder, subscribe } from "./workspace.ts";
 
 const routes: Record<string, string> = {
@@ -10,6 +10,7 @@ const routes: Record<string, string> = {
   calendar: "/calendar",
   metrics: "/metrics",
   configure: "/configure",
+  theme: "/theme",
 };
 
 export default function App({ children }: { children: ReactNode }) {
@@ -23,6 +24,7 @@ export default function App({ children }: { children: ReactNode }) {
     : path.startsWith("/calendar") ? "calendar"
     : path.startsWith("/metrics") ? "metrics"
     : path.startsWith("/configure") ? "configure"
+    : path.startsWith("/theme") ? "theme"
     : "home";
   const hub = currentHub();
   const note = hub.source === "demo" ? "Demo Week" : hub.person() || "Add your name";

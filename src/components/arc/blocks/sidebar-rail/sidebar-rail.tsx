@@ -4,7 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactElement,
 import * as Dialog from "@radix-ui/react-dialog";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { AnimatePresence, LayoutGroup, motion, useMotionValue, useReducedMotion, useTransform, type Transition } from "motion/react";
-import { Calendar, ChartColumn, ChevronRight, House, List, Settings, X, type LucideIcon } from "lucide-react";
+import { Calendar, ChartColumn, ChevronRight, House, List, Palette, Settings, X, type LucideIcon } from "lucide-react";
 import { Tooltip } from "../../tooltip/tooltip";
 import { motionTokens } from "../../lib/motion-tokens";
 import styles from "./sidebar-rail.module.css";
@@ -28,6 +28,7 @@ const sections: { id: string; heading?: string; items: Entry[] }[] = [
     { id: "actions", label: "Actions", icon: List },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "metrics", label: "Metrics", icon: ChartColumn },
+    { id: "theme", label: "Theme", icon: Palette },
   ] },
 ];
 
