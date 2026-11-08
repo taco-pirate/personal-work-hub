@@ -1,12 +1,15 @@
 import { useLayoutEffect, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Accordion } from "@/components/arc/accordion/accordion";
 import { PageHeader } from "@/components/arc/blocks/page-header/page-header";
 import { KanbanBoard, type KanbanCard } from "@/components/arc/blocks/kanban-board/kanban-board";
 import { WeekCalendar, type CalendarEvent, type CalendarSource } from "@/components/arc/blocks/week-calendar/week-calendar";
-import InstallSnippet from "@/components/arc/install-snippet/install-snippet";
+import { CopyButton } from "@/components/arc/copy-button/copy-button";
+import { ExpandableText } from "@/components/arc/expandable-text/expandable-text";
+import { Input } from "@/components/arc/input/input";
+import Button from "@/components/arc/button/button";
 import { MetricCard } from "@/components/arc/metric-card/metric-card";
 import SegmentedControl from "@/components/arc/segmented-control/segmented-control";
-import { FolderSteps } from "./folder-walk.tsx";
 import type { Desk, OwedRow, Pipeline } from "./hub.ts";
 import type { RecordView } from "./hub.ts";
 import { toggleTheme } from "./theme.ts";
@@ -357,29 +360,37 @@ export function MetricsPage() {
 const SETUP_PROMPTS = [
   {
     title: "Create the folder",
-    description: "PersonalWorkHub, then replies, tasks, and meetings",
-    code: "Create a folder named PersonalWorkHub at the root of my OneDrive. Inside it, create three folders named replies, tasks, and meetings. Leave them empty. Do not create SETTINGS.md.",
+    text: "Create a folder named PersonalWorkHub at the root of my OneDrive. Inside it, create three folders named replies, tasks, and meetings. Leave them empty. Do not create SETTINGS.md.",
   },
   {
     title: "Choose the folder",
-    description: "Point Personal Work Hub at that folder",
-    code: "The Personal Work Hub keeps its files in the PersonalWorkHub folder on OneDrive. In the app, open Configure and choose that folder. The folder must contain replies, tasks, and meetings. If one is missing, create it and choose the folder again. The app cannot see my directory by itself.",
+    text: "The Personal Work Hub keeps its files in the PersonalWorkHub folder on OneDrive. In the app, open Configure and choose that folder. The folder must contain replies, tasks, and meetings. If one is missing, create it and choose the folder again. The app cannot see my directory by itself.",
   },
   {
     title: "Schedule Cowork",
-    description: "7:50, 11:50, and 3:50 on workdays, and whenever I run it",
-    code: [
+    text: [
       "Schedule this work for 7:50, 11:50, and 3:50 in this computer's time zone on Monday through Friday. Also leave a way to run it whenever I ask.",
-      "",
       "When you run, read new mail and the calendar. File each answer I owe as one Reply in PersonalWorkHub/replies. File each deed that is not an answer as one Task in PersonalWorkHub/tasks. File every Meeting in PersonalWorkHub/meetings. New items start as Drafted. Use a visible placeholder for any fact I have not decided. Do not invent a date, a promise, or a fact. Do not overwrite a Reply I have edited. Do not delete files. Leave SETTINGS.md alone.",
-      "",
       "Give every Meeting exactly one category: Operating Review, Focus Time, 1:1, Working Session, Projects, Leadership, Operational Support, or Personal. If you cannot tell, use Uncategorized.",
-    ].join("\n"),
+    ].join("\n\n"),
   },
 ];
 
+function PromptBody({ text, action }: { text: string; action?: { label: string; onClick: () => void } }) {
+  return <>
+    <ExpandableText lines={3} className="prompt-copy">
+      {text.split("\n\n").map((paragraph) => <p key={paragraph.slice(0, 32)}>{paragraph}</p>)}
+    </ExpandableText>
+    <div className="setup-actions">
+      <CopyButton value={text} label="Copy prompt" />
+      {action ? <Button type="button" size="sm" onClick={action.onClick}>{action.label}</Button> : null}
+    </div>
+  </>;
+}
+
 export function ConfigurePage() {
   const hub = useHub();
+  const guide = currentGuide();
   const person = hub.person();
   const [name, setName] = useState(person);
   const [seen, setSeen] = useState(person);
@@ -391,14 +402,27 @@ export function ConfigurePage() {
     if (!currentHub().rename(name).ok) return;
     refresh();
   };
+  const choose = guide.asking ? { label: guide.action, onClick: () => { void pickChosenFolder(); } } : undefined;
+  const folder = <section className="configure-block">
+    <h2>Folder</h2>
+    {guide.notice ? <p className="quiet">{guide.notice}</p> : null}
+    <Accordion defaultOpen={hub.source === "folder" ? -1 : 0} items={SETUP_PROMPTS.map((prompt) => ({
+      title: prompt.title,
+      content: <PromptBody text={prompt.text} action={prompt.title === "Choose the folder" ? choose : undefined} />,
+    }))} />
+  </section>;
+  const nameField = <section className="configure-block">
+    <h2>Name</h2>
+    {hub.source === "folder" ? <form className="name-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
+      <Input label="Name" description="Shown in the corner. Saved in SETTINGS.md." value={name} onChange={(event) => setName(event.target.value)} />
+      <Button type="submit" size="sm">Save name</Button>
+    </form> : <p className="quiet">The name is saved in PersonalWorkHub once that folder is in use.</p>}
+  </section>;
   return <div className="page">
     <HubHeader title="Configure" />
-    <InstallSnippet title="Set up your hub" description="Three prompts to copy." version={null} prompts={SETUP_PROMPTS} />
-    {hub.source === "folder" ? <form className="name-form" onSubmit={(event) => { event.preventDefault(); save(); }}>
-      <label>Name <input value={name} onChange={(event) => setName(event.target.value)} /></label>
-      <button type="submit">Save name</button>
-    </form> : null}
-    <FolderSteps guide={currentGuide()} onSelect={() => { void pickChosenFolder(); }} />
+    <div className="configure">
+      {hub.source === "folder" ? <>{nameField}{folder}</> : <>{folder}{nameField}</>}
+    </div>
   </div>;
 }
 
