@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { describe, expect, it } from "vitest";
-import { CalendarPage, MeetingPage, OwedPage, RecordPage } from "./pages.tsx";
+import { CalendarPage, ConfigurePage, MeetingPage, OwedPage, RecordPage } from "./pages.tsx";
 
 function recordHtml(path: string, kind: "Reply" | "Task") {
   return renderToStaticMarkup(
@@ -132,5 +132,27 @@ describe("Calendar page", () => {
     expect(meeting).not.toContain(">Defer<");
     expect(meeting).not.toContain(">Drop<");
     expect(meeting).not.toContain(">Ready<");
+  });
+});
+
+describe("Configure page", () => {
+  it("wraps each prompt in a step that can open, and keeps the folder choice with that step", () => {
+    const html = renderToStaticMarkup(
+      <MemoryRouter>
+        <ConfigurePage />
+      </MemoryRouter>,
+    );
+
+    expect(html.indexOf("Folder")).toBeLessThan(html.indexOf(">Name<"));
+    expect(html).toContain("Create the folder");
+    expect(html).toContain("Choose the folder");
+    expect(html).toContain("Schedule Cowork");
+    expect(html).toContain("Leave SETTINGS.md alone");
+    expect(html).toContain("Read more");
+    expect(html).toContain("Copy prompt");
+    expect(html).toContain("Select PersonalWorkHub");
+    expect(html).toContain("once that folder is in use");
+    expect(html).not.toContain("Generate key");
+    expect(html).not.toContain("Create replies, tasks, and meetings inside it.");
   });
 });

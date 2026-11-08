@@ -2,7 +2,13 @@ html, body, #root { margin: 0; height: 100%; }
 body { background: var(--background); color: var(--foreground); font-family: var(--font-body); font-size: 13.5px; }
 h1, h2, h3 { font-family: var(--font-display); }
 .page { display: flex; flex-direction: column; gap: 1rem; }
-.task-form, .name-form { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+.task-form, .name-form { display: flex; flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+.configure { display: flex; flex-direction: column; gap: 2rem; max-width: 40rem; }
+.configure-block { display: flex; flex-direction: column; gap: 0.75rem; }
+.configure-block h2 { margin: 0; font-size: 1rem; font-weight: 500; }
+.prompt-copy p { margin: 0 0 0.75rem; }
+.prompt-copy p:last-child { margin-bottom: 0; }
+.setup-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-top: 0.75rem; }
 .task-form input, .name-form input { font: inherit; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: inherit; }
 .page h1 { margin: 0; font-size: 1.35rem; font-weight: 560; letter-spacing: -0.03em; }
 .quiet { margin: 0; color: var(--text-muted); }
