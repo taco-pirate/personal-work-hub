@@ -13,9 +13,10 @@ Notes for the last pass before this version is called complete.
 - Calendar uses the Arc week calendar for the remaining workweek. It shows Meetings and usable gaps. Dragging, resizing, creating, or deleting on that grid does not change a file and does not create an Outlook event. Choosing a category stays on the meeting's own page.
 - The corner mark stays the icon already there. The note says Demo Week while the sample week is showing. Once a folder is in use, the note shows the Name saved on Configure. If that Name is empty, the note says "Add your name".
 - Configure has one field for the Name. The person can change it later. An empty save clears it. The app cannot read an AD account name.
-- The Name is kept in the chosen OneDrive folder. The file that holds it is still open.
+- The Name is kept in `SETTINGS.md` at the root of `PersonalWorkHub`, next to `replies`, `tasks`, and `meetings`. The file holds only the Name. Saving creates it if it is missing. An empty save clears the Name and leaves the file. Cowork's prompt says to leave that file alone. The same folder shows the same Name on another machine. Light and dark stay on this machine.
+- While a folder is in use and the Name is empty, "Add your name" opens Configure.
 - New task is available only while a chosen folder is in use. On the sample week the action is absent.
 
 ## Open
 
-Whether that store is one file named `SETTINGS.md` at the root of `PersonalWorkHub`, and whether "Add your name" opens Configure.
+What Home's header title keeps, and the order of the sidebar.
